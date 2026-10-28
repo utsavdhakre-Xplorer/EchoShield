@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: echoshield_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: echoshield
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: echoshield_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017/echoshield
+    volumes:
+      - ./backend:/app
+
+  web:
+    image: nginx:alpine
+    container_name: echoshield_web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./web-dashboard:/usr/share/nginx/html:ro
+
+volumes:
+  mongo_data:
