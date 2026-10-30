@@ -50,12 +50,33 @@ async def analyze_transcript(
     )
     logger.info(f"Negotiator strategy generated")
 
-    # Generate log ID for response
-    call_log_id = call_id or str(uuid4())
-    logger.info(f"Analysis complete. Returning response.")
-
     # Serialize threat_level enum to string
     threat_level_str = threat["threat_level"].value if hasattr(threat["threat_level"], 'value') else str(threat["threat_level"])
+
+    # Persist call to database so it appears in past calls history
+    from app.core.database import CallLog
+    try:
+        new_log = CallLog(
+            user_id=str(current_user.id),
+            caller_number=request.get("caller_number", "+1 (555) 019-8834"),
+            transcript=transcript,
+            threat_level=threat["threat_level"],
+            deepfake_confidence=0.0,
+            is_deepfake=False,
+            urgency_score=scam_result["urgency_score"],
+            urgency_detected=scam_result["urgency_detected"],
+            overall_threat_score=threat["overall_score"],
+            urgency_phrases_found=scam_result.get("phrases_found", []),
+            negotiator_strategy=strategy,
+            alert_sent=threat["alert_required"],
+        )
+        await new_log.insert()
+        call_log_id = str(new_log.id)
+    except Exception as e:
+        logger.warning(f"Failed to save call log: {e}")
+        call_log_id = call_id or str(uuid4())
+
+    logger.info(f"Analysis complete. Returning response.")
 
     return {
         "call_log_id": call_log_id,
@@ -81,16 +102,22 @@ async def get_call_logs(
 ):
     """Get call logs for current user."""
     from app.core.database import CallLog
+    from app.core.seed_data import ensure_seed_logs
     
-    logs = await CallLog.find({"user_id": current_user.id}).sort([("call_start", -1)]).limit(limit).to_list()
+    await ensure_seed_logs(CallLog, str(current_user.id))
+    logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
     return [
         {
-            "id": log.id,
+            "id": str(log.id),
             "call_start": log.call_start.isoformat() if hasattr(log.call_start, 'isoformat') else str(log.call_start),
-            "threat_level": log.threat_level,
+            "call_end": log.call_end.isoformat() if getattr(log, 'call_end', None) and hasattr(log.call_end, 'isoformat') else getattr(log, 'call_end', None),
+            "threat_level": log.threat_level.value if hasattr(log.threat_level, 'value') else str(log.threat_level),
             "overall_threat_score": log.overall_threat_score,
             "is_deepfake": log.is_deepfake,
+            "deepfake_confidence": getattr(log, 'deepfake_confidence', 0.0),
             "urgency_detected": log.urgency_detected,
+            "urgency_score": getattr(log, 'urgency_score', 0.0),
+            "urgency_phrases_found": getattr(log, 'urgency_phrases_found', []),
             "transcript": log.transcript,
             "negotiator_strategy": log.negotiator_strategy,
             "caller_number": log.caller_number,
@@ -103,8 +130,10 @@ async def get_call_logs(
 async def get_stats(current_user = Depends(get_current_user)):
     """Get user statistics."""
     from app.core.database import CallLog
+    from app.core.seed_data import ensure_seed_logs
     
-    all_logs = await CallLog.find({"user_id": current_user.id}).to_list()
+    await ensure_seed_logs(CallLog, str(current_user.id))
+    all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
     total_calls = len(all_logs)
     # threat_level may be a ThreatLevel enum or a plain string — normalise to str
     scam_calls = sum(1 for l in all_logs if str(getattr(l.threat_level, 'value', l.threat_level)) in ["HIGH", "CRITICAL"])

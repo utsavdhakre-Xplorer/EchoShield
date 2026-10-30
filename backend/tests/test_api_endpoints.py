@@ -83,6 +83,48 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Empty or invalid audio data", response.json()["detail"])
 
+    def test_get_call_logs_shows_past_history(self):
+        """GET /call-logs should return seeded past calls history for user."""
+        headers = self._get_auth_headers()
+        response = self.client.get("/call-logs", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        logs = response.json()
+        self.assertIsInstance(logs, list)
+        self.assertGreaterEqual(len(logs), 1)
+        # Verify first log has expected fields
+        first = logs[0]
+        self.assertIn("caller_number", first)
+        self.assertIn("threat_level", first)
+        self.assertIn("transcript", first)
+        self.assertIn("negotiator_strategy", first)
+        self.assertIn("overall_threat_score", first)
+
+    def test_get_auth_call_history_shows_past_history(self):
+        """GET /auth/call-history should return past calls history for user."""
+        headers = self._get_auth_headers()
+        response = self.client.get("/auth/call-history", headers=headers)
+        self.assertEqual(response.status_code, 200)
+        logs = response.json()
+        self.assertIsInstance(logs, list)
+        self.assertGreaterEqual(len(logs), 1)
+
+    def test_analyze_persists_to_call_history(self):
+        """POST /analyze should add the new analyzed call to history."""
+        headers = self._get_auth_headers()
+        initial_res = self.client.get("/call-logs", headers=headers)
+        initial_count = len(initial_res.json())
+
+        # Analyze a new call
+        payload = {"transcript": "This is your credit card company. Confirm your password now."}
+        analyze_res = self.client.post("/analyze", json=payload, headers=headers)
+        self.assertEqual(analyze_res.status_code, 200)
+
+        # History should now have 1 more call
+        updated_res = self.client.get("/call-logs", headers=headers)
+        updated_logs = updated_res.json()
+        self.assertEqual(len(updated_logs), initial_count + 1)
+        self.assertEqual(updated_logs[0]["transcript"], payload["transcript"])
+
 
 if __name__ == "__main__":
     unittest.main()

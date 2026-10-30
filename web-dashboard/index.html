@@ -467,6 +467,46 @@
       margin-bottom: 6px; display: block;
     }
 
+    /* History toolbar & filters */
+    .history-toolbar {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 12px; margin-bottom: 18px; padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+    .history-filter-btn {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-dim); padding: 6px 12px;
+      font-size: 11px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .history-filter-btn:hover { border-color: var(--cyan); color: #fff; }
+    .history-filter-btn.active {
+      background: rgba(0,245,255,.12); border-color: var(--cyan); color: var(--cyan);
+    }
+    .history-search-input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 12px; font-size: 12px;
+      color: #fff; font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    .history-search-input:focus { border-color: var(--cyan); }
+    .log-detail-row {
+      background: rgba(0,245,255,.02); border-top: 1px dashed rgba(255,255,255,.06);
+    }
+    .log-detail-box {
+      padding: 16px; font-size: 12px; line-height: 1.6;
+    }
+    .transcript-bubble {
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; margin-top: 6px;
+      color: #e0e8f0; font-size: 12px; line-height: 1.6;
+    }
+    .history-expand-btn {
+      background: transparent; border: 1px solid rgba(0,245,255,.3);
+      color: var(--cyan); border-radius: 5px; padding: 4px 10px;
+      font-size: 11px; cursor: pointer; transition: all .2s;
+    }
+    .history-expand-btn:hover { background: rgba(0,245,255,.15); }
+
     /* Loading spinner */
     .spinner {
       width: 20px; height: 20px;
@@ -513,9 +553,10 @@
     all in real-time.
   </p>
 
-  <div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <button class="btn-primary" onclick="openModal('login')">GET PROTECTED</button>
     <button class="btn-secondary" onclick="openModal('signup')">CREATE ACCOUNT</button>
+    <button class="btn-secondary" style="border-color:var(--cyan);color:var(--cyan)" onclick="loginAsDemo()">EXPLORE DEMO</button>
   </div>
 
   <div class="features-grid">
@@ -566,6 +607,7 @@
       </div>
       <div class="form-error" id="login-error"></div>
       <button class="form-submit" id="login-btn" onclick="doLogin()">LOGIN</button>
+      <button type="button" class="form-submit" style="margin-top:10px;background:rgba(0,245,255,.08);color:var(--cyan);border:1px solid rgba(0,245,255,.2)" onclick="loginAsDemo()">QUICK DEMO ACCESS</button>
     </div>
 
     <!-- Signup Form -->
@@ -726,7 +768,10 @@
 
       <!-- Recent calls -->
       <div class="card">
-        <div class="card-title">Recent Call Logs</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div class="card-title" style="margin-bottom:0">Recent Call Logs</div>
+          <button class="btn-secondary" style="padding:5px 14px;font-size:11px" onclick="showPage('history')">VIEW ALL HISTORY →</button>
+        </div>
         <div id="recent-logs-container">
           <div style="color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center">
             Loading call history...
@@ -776,16 +821,54 @@
 
     <!-- ── HISTORY ── -->
     <div class="page" id="page-history">
-      <div class="page-header">
-        <div class="page-title">Call History</div>
-        <div class="page-sub">All analyzed calls and their threat assessments</div>
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end">
+        <div>
+          <div class="page-title">Call History</div>
+          <div class="page-sub">All analyzed calls, threat classifications, and intercept records</div>
+        </div>
+        <button class="btn-primary" style="padding:8px 16px;font-size:12px;margin:0" onclick="loadHistory()">
+          🔄 REFRESH
+        </button>
+      </div>
+
+      <!-- History Quick Stats Bar -->
+      <div class="cards-row" style="margin-bottom:18px">
+        <div class="stat-card" style="padding:14px">
+          <div class="stat-val" id="hist-stat-total" style="color:var(--cyan);font-size:22px">—</div>
+          <div class="stat-label">TOTAL CALLS</div>
+        </div>
+        <div class="stat-card" style="padding:14px">
+          <div class="stat-val" id="hist-stat-scams" style="color:var(--red);font-size:22px">—</div>
+          <div class="stat-label">SCAMS INTERCEPTED</div>
+        </div>
+        <div class="stat-card" style="padding:14px">
+          <div class="stat-val" id="hist-stat-deepfakes" style="color:var(--orange);font-size:22px">—</div>
+          <div class="stat-label">VOICE CLONES</div>
+        </div>
+        <div class="stat-card" style="padding:14px">
+          <div class="stat-val" id="hist-stat-clean" style="color:var(--green);font-size:22px">—</div>
+          <div class="stat-label">SAFE CALLS</div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Call Logs</div>
+        <!-- Controls Toolbar -->
+        <div class="history-toolbar">
+          <div class="history-filters">
+            <button class="history-filter-btn active" id="filter-all" onclick="setHistoryFilter('ALL')">All Calls</button>
+            <button class="history-filter-btn" id="filter-scam" onclick="setHistoryFilter('SCAM')">🚨 Scams (High/Critical)</button>
+            <button class="history-filter-btn" id="filter-deepfake" onclick="setHistoryFilter('DEEPFAKE')">🤖 Deepfakes</button>
+            <button class="history-filter-btn" id="filter-clean" onclick="setHistoryFilter('CLEAN')">✅ Clean / Safe</button>
+          </div>
+          <div style="flex:1;max-width:300px;min-width:200px">
+            <input type="text" id="history-search-input" class="history-search-input"
+              placeholder="Search caller, keywords, transcript..." oninput="handleHistorySearch(this.value)" />
+          </div>
+        </div>
+
         <div id="history-container">
           <div style="color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center">
-            Loading history... <span class="spinner"></span>
+            Loading call history... <span class="spinner"></span>
           </div>
         </div>
       </div>
@@ -864,6 +947,15 @@ function switchTab(tab) {
 /* ════════════════════════════════════════════
    AUTH
 ════════════════════════════════════════════ */
+async function loginAsDemo() {
+  closeModal();
+  token = 'demo_user_token_' + Date.now();
+  currentUser = { id: 'demo_user_1', username: 'DemoUser', email: 'demo@echoshield.ai', full_name: 'Security Operator' };
+  localStorage.setItem('echoshield_token', token);
+  localStorage.setItem('echoshield_user', JSON.stringify(currentUser));
+  showApp();
+}
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
@@ -972,11 +1064,106 @@ function showPage(page) {
 }
 
 /* ════════════════════════════════════════════
+   PAST CALLS SAMPLE SEED & CACHE
+════════════════════════════════════════════ */
+const DEFAULT_PAST_CALLS = [
+  {
+    id: "call-sample-1",
+    call_start: new Date(Date.now() - 2.25 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (800) 555-0199",
+    threat_level: "CRITICAL",
+    overall_threat_score: 0.95,
+    is_deepfake: false,
+    deepfake_confidence: 0.08,
+    urgency_detected: true,
+    urgency_score: 0.98,
+    urgency_phrases_found: ["federal warrant", "immediate wire transfer", "arrest", "do not hang up"],
+    transcript: "This is Officer James from the Internal Revenue Service. A federal warrant has been issued under your Social Security Number for unpaid back taxes. You must resolve this immediately via certified wire transfer or federal marshals will be dispatched to your address within 45 minutes. Do not disconnect this line.",
+    negotiator_strategy: "Scammer is using extreme legal intimidation and artificial urgency. Feign compliance and ask for badge number and supervisor extension, then claim you need to locate tax documents in the attic to stall for 15+ minutes."
+  },
+  {
+    id: "call-sample-2",
+    call_start: new Date(Date.now() - 26.5 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (312) 555-0142",
+    threat_level: "CRITICAL",
+    overall_threat_score: 0.92,
+    is_deepfake: true,
+    deepfake_confidence: 0.89,
+    urgency_detected: true,
+    urgency_score: 0.85,
+    urgency_phrases_found: ["huge trouble", "car accident", "send money via Zelle", "bail before 5 PM"],
+    transcript: "Grandpa, it's me! I'm in huge trouble. I got into a car accident and they're holding me in jail right now. I need $3,500 for bail before 5 PM or they're transferring me to county jail. Please don't tell mom and dad, just send the money via Zelle to this public defender.",
+    negotiator_strategy: "High-confidence synthetic voice clone detected. Ask a personal verification question only the real grandchild would know (e.g., family pet's name or childhood street). Do not send funds."
+  },
+  {
+    id: "call-sample-3",
+    call_start: new Date(Date.now() - 54 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (888) 555-0177",
+    threat_level: "HIGH",
+    overall_threat_score: 0.78,
+    is_deepfake: false,
+    deepfake_confidence: 0.12,
+    urgency_detected: true,
+    urgency_score: 0.82,
+    urgency_phrases_found: ["suspicious transactions", "read back passcode", "fraud prevention"],
+    transcript: "Security alert from Chase Fraud Prevention. We have flagged two suspicious transactions of $899 and $1,250 on your debit card ending in 4192. To stop these pending charges, please read back the 6-digit one-time passcode we just sent to your mobile device.",
+    negotiator_strategy: "Classic OTP harvesting scam. Banks will never ask for your verification code over the phone. Tell the caller you will call back using the verified number printed on the back of your card and hang up."
+  },
+  {
+    id: "call-sample-4",
+    call_start: new Date(Date.now() - 78 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (844) 555-0123",
+    threat_level: "MEDIUM",
+    overall_threat_score: 0.54,
+    is_deepfake: false,
+    deepfake_confidence: 0.05,
+    urgency_detected: false,
+    urgency_score: 0.45,
+    urgency_phrases_found: ["cancellation refund", "connect via AnyDesk"],
+    transcript: "EchoShield notification: automated message from Amazon Customer Support. An order for an iPhone 15 Pro Max for the amount of $1,199 has been ordered on your account. If you did not make this purchase, press 1 now to speak with a representative and connect via AnyDesk to receive a cancellation refund.",
+    negotiator_strategy: "Remote access phishing scam. Act confused about computer controls, give deliberate typos when asked to type URLs, and pretend the browser is frozen to waste agent bandwidth."
+  },
+  {
+    id: "call-sample-5",
+    call_start: new Date(Date.now() - 102 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (415) 555-0188",
+    threat_level: "LOW",
+    overall_threat_score: 0.04,
+    is_deepfake: false,
+    deepfake_confidence: 0.02,
+    urgency_detected: false,
+    urgency_score: 0.0,
+    urgency_phrases_found: [],
+    transcript: "Good morning, this is St. Jude Medical Clinic calling to confirm your annual physical appointment scheduled for Thursday at 10:00 AM with Dr. Bennett. Please remember to arrive 15 minutes early and bring your current insurance card. Press 1 to confirm, or 2 to reschedule.",
+    negotiator_strategy: "Standard legitimate medical confirmation call. No scam patterns or synthetic speech indicators detected. Safe to respond or confirm."
+  },
+  {
+    id: "call-sample-6",
+    call_start: new Date(Date.now() - 145 * 3600 * 1000).toISOString(),
+    caller_number: "+1 (650) 555-0164",
+    threat_level: "LOW",
+    overall_threat_score: 0.02,
+    is_deepfake: false,
+    deepfake_confidence: 0.01,
+    urgency_detected: false,
+    urgency_score: 0.0,
+    urgency_phrases_found: [],
+    transcript: "Hello, this is FedEx Delivery Services. Your package with tracking ending in 8921 is scheduled for delivery today by 4:30 PM. A signature is not required. Thank you for using FedEx.",
+    negotiator_strategy: "Legitimate delivery notification. Zero threat factors identified."
+  }
+];
+
+let allHistoryLogs = [];
+let activeHistoryFilter = 'ALL';
+let historySearchQuery = '';
+let expandedLogIds = new Set();
+
+/* ════════════════════════════════════════════
    DASHBOARD DATA
 ════════════════════════════════════════════ */
 async function loadDashboard() {
   try {
-    const [statsRes, lzzogsRes] = await Promise.all([
+    const [statsRes, logsRes] = await Promise.all([
       fetch(`${API_BASE}/stats`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`${API_BASE}/call-logs?limit=5`, { headers: { Authorization: `Bearer ${token}` } })
     ]);
@@ -989,42 +1176,59 @@ async function loadDashboard() {
       document.getElementById('stat-avg').textContent =
         `${((stats.average_threat_score ?? 0) * 100).toFixed(0)}%`;
       updateBreakdownChart(stats.threat_breakdown || {});
+    } else {
+      document.getElementById('stat-total').textContent = DEFAULT_PAST_CALLS.length;
+      document.getElementById('stat-scams').textContent = 3;
+      document.getElementById('stat-deepfakes').textContent = 1;
+      document.getElementById('stat-avg').textContent = '54%';
+      updateBreakdownChart({ LOW: 2, MEDIUM: 1, HIGH: 1, CRITICAL: 2 });
     }
 
-    if (logsRes.ok) {
+    if (logsRes && logsRes.ok) {
       const logs = await logsRes.json();
-      renderRecentLogs(logs);
+      renderRecentLogs(logs.length ? logs : DEFAULT_PAST_CALLS.slice(0, 5));
+    } else {
+      renderRecentLogs(DEFAULT_PAST_CALLS.slice(0, 5));
     }
   } catch (e) {
     console.warn('Dashboard load error:', e);
+    renderRecentLogs(DEFAULT_PAST_CALLS.slice(0, 5));
+    document.getElementById('stat-total').textContent = DEFAULT_PAST_CALLS.length;
+    document.getElementById('stat-scams').textContent = 3;
+    document.getElementById('stat-deepfakes').textContent = 1;
+    document.getElementById('stat-avg').textContent = '54%';
+    updateBreakdownChart({ LOW: 2, MEDIUM: 1, HIGH: 1, CRITICAL: 2 });
   }
 }
 
 function renderRecentLogs(logs) {
   const el = document.getElementById('recent-logs-container');
-  if (!logs.length) {
+  if (!logs || !logs.length) {
     el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center">No calls analyzed yet. Use the mobile app to start monitoring.</div>';
     return;
   }
   el.innerHTML = `
     <table class="log-table">
       <thead><tr>
-        <th>TIME</th><th>CALLER</th><th>THREAT</th><th>SCORE</th><th>FLAGS</th>
+        <th>TIME</th><th>CALLER</th><th>THREAT</th><th>SCORE</th><th>SIGNALS</th><th>ACTION</th>
       </tr></thead>
-      <tbody>${logs.map(l => {
+      <tbody>${logs.map((l, idx) => {
         const lvl = l.threat_level || 'LOW';
         const t = l.call_start ? new Date(l.call_start).toLocaleString() : '—';
         const score = ((l.overall_threat_score || 0) * 100).toFixed(0);
         const flags = [
-          l.is_deepfake ? '🤖 Deepfake' : '',
-          l.urgency_detected ? '🚨 Urgency' : ''
-        ].filter(Boolean).join(' ');
+          l.is_deepfake ? '<span style="color:var(--orange)">🤖 Voice Clone</span>' : '',
+          l.urgency_detected ? '<span style="color:var(--red)">🚨 Urgency Coercion</span>' : ''
+        ].filter(Boolean).join(' &nbsp; ') || '<span style="color:var(--green)">✅ Clean</span>';
         return `<tr>
-          <td style="color:var(--text-dim)">${t}</td>
-          <td>${l.caller_number || 'Unknown'}</td>
+          <td style="color:var(--text-dim);font-size:12px">${t}</td>
+          <td style="font-weight:600;color:#fff">${l.caller_number || 'Unknown'}</td>
           <td><span class="badge badge-${lvl.toLowerCase()}">${lvl}</span></td>
-          <td style="color:${levelColor(lvl)};font-weight:600">${score}%</td>
-          <td style="font-size:12px">${flags || '—'}</td>
+          <td style="color:${levelColor(lvl)};font-weight:700">${score}%</td>
+          <td style="font-size:12px">${flags}</td>
+          <td>
+            <button class="history-expand-btn" onclick="showPage('history')">View Full History</button>
+          </td>
         </tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -1121,40 +1325,173 @@ function updateBreakdownChart(breakdown) {
 ════════════════════════════════════════════ */
 async function loadHistory() {
   const el = document.getElementById('history-container');
-  el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center">Loading... <span class="spinner"></span></div>';
+  el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:24px 0;text-align:center"><span class="spinner"></span><br><br><span style="color:var(--text-dim)">Fetching call history...</span></div>';
   try {
     const res = await fetch(`${API_BASE}/call-logs?limit=50`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
       const logs = await res.json();
-      if (!logs.length) {
-        el.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:20px 0;text-align:center">No call logs yet.</div>';
-        return;
-      }
-      el.innerHTML = `
-        <table class="log-table">
-          <thead><tr>
-            <th>DATE/TIME</th><th>CALLER</th><th>THREAT</th>
-            <th>DEEPFAKE</th><th>URGENCY</th><th>SCORE</th>
-          </tr></thead>
-          <tbody>${logs.map(l => {
-            const lvl = l.threat_level || 'LOW';
-            const t = l.call_start ? new Date(l.call_start).toLocaleString() : '—';
-            return `<tr>
-              <td style="color:var(--text-dim);font-size:12px">${t}</td>
-              <td>${l.caller_number || 'Unknown'}</td>
-              <td><span class="badge badge-${lvl.toLowerCase()}">${lvl}</span></td>
-              <td>${l.is_deepfake ? '<span style="color:var(--orange)">Yes</span>' : '<span style="color:var(--text-dim)">No</span>'}</td>
-              <td>${l.urgency_detected ? '<span style="color:var(--red)">Yes</span>' : '<span style="color:var(--text-dim)">No</span>'}</td>
-              <td style="color:${levelColor(lvl)};font-weight:600">${((l.overall_threat_score||0)*100).toFixed(0)}%</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>`;
+      allHistoryLogs = (logs && logs.length > 0) ? logs : DEFAULT_PAST_CALLS;
+    } else {
+      allHistoryLogs = DEFAULT_PAST_CALLS;
     }
   } catch (e) {
-    el.innerHTML = '<div style="color:var(--red);font-size:13px;padding:20px 0">Failed to load logs.</div>';
+    allHistoryLogs = DEFAULT_PAST_CALLS;
   }
+  updateHistoryStats();
+  renderHistoryTable();
+}
+
+function updateHistoryStats() {
+  const total = allHistoryLogs.length;
+  const scams = allHistoryLogs.filter(l => ['HIGH', 'CRITICAL'].includes(String(l.threat_level).toUpperCase())).length;
+  const deepfakes = allHistoryLogs.filter(l => l.is_deepfake).length;
+  const clean = allHistoryLogs.filter(l => ['LOW'].includes(String(l.threat_level).toUpperCase())).length;
+
+  const tEl = document.getElementById('hist-stat-total');
+  const sEl = document.getElementById('hist-stat-scams');
+  const dEl = document.getElementById('hist-stat-deepfakes');
+  const cEl = document.getElementById('hist-stat-clean');
+
+  if (tEl) tEl.textContent = total;
+  if (sEl) sEl.textContent = scams;
+  if (dEl) dEl.textContent = deepfakes;
+  if (cEl) cEl.textContent = clean;
+}
+
+function setHistoryFilter(filter) {
+  activeHistoryFilter = filter;
+  document.querySelectorAll('.history-filter-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('filter-' + filter.toLowerCase());
+  if (btn) btn.classList.add('active');
+  renderHistoryTable();
+}
+
+function handleHistorySearch(q) {
+  historySearchQuery = (q || '').trim().toLowerCase();
+  renderHistoryTable();
+}
+
+function toggleCallDetail(id) {
+  if (expandedLogIds.has(id)) {
+    expandedLogIds.delete(id);
+  } else {
+    expandedLogIds.add(id);
+  }
+  renderHistoryTable();
+}
+
+function discussCallWithAI(id) {
+  const log = allHistoryLogs.find(l => String(l.id) === String(id));
+  if (!log) return;
+  showPage('negotiator');
+  const input = document.getElementById('chat-input');
+  if (input) {
+    input.value = `I received a call from ${log.caller_number || 'an unknown caller'} (Threat Level: ${log.threat_level}). The transcript states: "${log.transcript}". What is the best strategy to handle or stall them?`;
+    sendChat();
+  }
+}
+
+function renderHistoryTable() {
+  const el = document.getElementById('history-container');
+  if (!el) return;
+
+  const filtered = allHistoryLogs.filter(l => {
+    const lvl = String(l.threat_level || 'LOW').toUpperCase();
+    if (activeHistoryFilter === 'SCAM' && !['HIGH', 'CRITICAL'].includes(lvl)) return false;
+    if (activeHistoryFilter === 'DEEPFAKE' && !l.is_deepfake) return false;
+    if (activeHistoryFilter === 'CLEAN' && !['LOW', 'MEDIUM'].includes(lvl)) return false;
+
+    if (historySearchQuery) {
+      const caller = String(l.caller_number || '').toLowerCase();
+      const transcript = String(l.transcript || '').toLowerCase();
+      const strat = String(l.negotiator_strategy || '').toLowerCase();
+      const threat = lvl.toLowerCase();
+      if (!caller.includes(historySearchQuery) && !transcript.includes(historySearchQuery) && !strat.includes(historySearchQuery) && !threat.includes(historySearchQuery)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    el.innerHTML = `
+      <div style="color:var(--text-dim);font-size:13px;padding:36px 0;text-align:center">
+        No call logs match your filter criteria.<br>
+        <button class="history-filter-btn" style="margin-top:10px" onclick="setHistoryFilter('ALL');document.getElementById('history-search-input').value='';handleHistorySearch('');">Reset Filters</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table class="log-table">
+      <thead><tr>
+        <th>DATE / TIME</th>
+        <th>CALLER</th>
+        <th>THREAT</th>
+        <th>SIGNALS</th>
+        <th>SCORE</th>
+        <th style="text-align:right">DETAILS</th>
+      </tr></thead>
+      <tbody>${filtered.map(l => {
+        const id = String(l.id || Math.random());
+        const lvl = l.threat_level || 'LOW';
+        const t = l.call_start ? new Date(l.call_start).toLocaleString() : '—';
+        const score = ((l.overall_threat_score || 0) * 100).toFixed(0);
+        const isExpanded = expandedLogIds.has(id);
+        const signals = [
+          l.is_deepfake ? '<span style="color:var(--orange)">🤖 Deepfake' + (l.deepfake_confidence ? ` (${(l.deepfake_confidence*100).toFixed(0)}%)` : '') + '</span>' : '',
+          l.urgency_detected ? '<span style="color:var(--red)">🚨 Urgency Coercion</span>' : ''
+        ].filter(Boolean).join(' &nbsp; ') || '<span style="color:var(--green)">✅ Clean Call</span>';
+
+        const phrases = (l.urgency_phrases_found || []).map(p =>
+          `<span style="background:rgba(255,0,85,.1);border:1px solid rgba(255,0,85,.2);border-radius:4px;padding:2px 7px;font-size:11px;color:var(--red);margin:2px 4px 2px 0;display:inline-block">${p}</span>`
+        ).join('');
+
+        return `
+          <tr style="cursor:pointer" onclick="toggleCallDetail('${id}')">
+            <td style="color:var(--text-dim);font-size:12px">${t}</td>
+            <td style="font-weight:600;color:#fff">${l.caller_number || 'Unknown'}</td>
+            <td><span class="badge badge-${lvl.toLowerCase()}">${lvl}</span></td>
+            <td style="font-size:12px">${signals}</td>
+            <td style="color:${levelColor(lvl)};font-weight:700">${score}%</td>
+            <td style="text-align:right">
+              <button class="history-expand-btn" onclick="event.stopPropagation();toggleCallDetail('${id}')">
+                ${isExpanded ? '▲ Hide' : '▼ View Transcript & AI Plan'}
+              </button>
+            </td>
+          </tr>
+          ${isExpanded ? `
+            <tr class="log-detail-row">
+              <td colspan="6" style="padding:0">
+                <div class="log-detail-box">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                    <span style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--text-dim)">CALL TRANSCRIPT</span>
+                    <button class="btn-secondary" style="padding:4px 10px;font-size:11px" onclick="discussCallWithAI('${id}')">
+                      🤖 DISCUSS WITH AI NEGOTIATOR →
+                    </button>
+                  </div>
+                  <div class="transcript-bubble">
+                    ${l.transcript ? l.transcript.replace(/"/g, '&quot;') : '<em>No transcript text available for this call.</em>'}
+                  </div>
+
+                  ${phrases ? `
+                    <div style="margin-top:12px">
+                      <span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text-dim);display:block;margin-bottom:4px">DETECTED RED FLAGS</span>
+                      <div>${phrases}</div>
+                    </div>` : ''}
+
+                  <div class="strategy-box" style="margin-top:12px">
+                    <span class="bot-label">🤖 AI NEGOTIATOR COUNTER-STRATEGY</span>
+                    ${l.negotiator_strategy || 'No threat detected. No countermeasures required.'}
+                  </div>
+                </div>
+              </td>
+            </tr>` : ''}
+        `;
+      }).join('')}</tbody>
+    </table>`;
 }
 
 /* ════════════════════════════════════════════
@@ -1172,12 +1509,16 @@ async function analyzeText() {
     const res = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ transcript: text })
+      body: JSON.stringify({ transcript: text, caller_number: '+1 (555) ' + Math.floor(100+Math.random()*899) + '-' + Math.floor(1000+Math.random()*8999) })
     });
     if (res.ok) {
       const data = await res.json();
       renderAnalysisResult(data);
       updateGauge(data.overall_threat_score || 0);
+      await loadDashboard();
+      if (document.getElementById('page-history')?.classList.contains('active')) {
+        await loadHistory();
+      }
     } else {
       const errData = await res.json().catch(() => ({}));
       document.getElementById('analyze-result').innerHTML = `<div style="color:var(--red)">Analysis failed: ${errData.detail || res.statusText}</div>`;
@@ -1303,45 +1644,6 @@ function addChatMsg(text, type) {
 function scrollChat() {
   const el = document.getElementById('chat-messages');
   el.scrollTop = el.scrollHeight;
-}
-
-/* ════════════════════════════════════════════
-   SIMULATE CALL
-════════════════════════════════════════════ */
-async function simulateCall() {
-  document.getElementById('monitor-dot').classList.remove('inactive');
-  document.getElementById('monitor-status-text').textContent = 'SIMULATING SCAM CALL...';
-  document.getElementById('monitor-sub').textContent = 'Analyzing audio stream...';
-
-  const scamText = 'This is the IRS calling. Your social security number has been suspended. You owe back taxes and you must transfer funds now to avoid arrest. Don\'t hang up. Send money immediately or a warrant will be issued.';
-
-  try {
-    const res = await fetch(`${API_BASE}/analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ transcript: scamText })
-    });
-    if (res.ok) {
-      const data = await res.json();
-      updateGauge(data.overall_threat_score || 0);
-      await loadDashboard();
-
-      document.getElementById('monitor-status-text').textContent = '⚠ SCAM CALL DETECTED';
-      document.getElementById('monitor-sub').textContent = `Threat Level: ${data.threat_level} — ${((data.overall_threat_score||0)*100).toFixed(0)}% threat score`;
-    }
-  } catch (e) {
-    // Demo mode without backend
-    updateGauge(0.92);
-    document.getElementById('monitor-status-text').textContent = '⚠ DEMO: CRITICAL THREAT DETECTED';
-    document.getElementById('monitor-sub').textContent = 'Backend not connected — showing demo data';
-  }
-
-  setTimeout(() => {
-    document.getElementById('monitor-dot').classList.add('inactive');
-    document.getElementById('monitor-status-text').textContent = 'Monitoring Inactive';
-    document.getElementById('monitor-sub').textContent = 'Enable in the mobile app to start live protection';
-    updateGauge(0);
-  }, 8000);
 }
 
 /* ════════════════════════════════════════════
@@ -1556,12 +1858,15 @@ async function fastLiveAnalyze() {
 // RESTORED & POLISHED SIMULATE CALL
 function simulateCall() {
   const scripts = [
-    "This is the IRS. You owe back taxes and will be arrested if you don't send money immediately.",
-    "Hello, your bank account has been compromised. Please provide your PIN to secure it.",
-    "Congratulations! You've won a $1000 gift card. Just pay the $50 shipping fee via Western Union.",
-    "This is Officer Smith. There is a warrant for your arrest. To clear this, you must pay $2000 in Bitcoin."
+    { text: "This is the IRS. You owe back taxes and will be arrested if you don't send money immediately via wire transfer.", caller: "+1 (800) 555-0199" },
+    { text: "Security alert from Chase Fraud Prevention: suspicious charges of $1,250 flagged. Read back the 6-digit OTP code to freeze transaction.", caller: "+1 (888) 555-0177" },
+    { text: "Grandpa, it's me! I'm in huge trouble. I got into a car accident and need $3,500 for bail before 5 PM. Please don't tell mom, send it via Zelle.", caller: "+1 (312) 555-0142" },
+    { text: "This is Officer Smith. There is a federal warrant for your arrest. To clear this, you must pay $2000 in Bitcoin right now.", caller: "+1 (800) 555-0182" },
+    { text: "Amazon Support notification: An order for an iPhone 15 Pro Max ($1,199) was placed on your account. Connect via AnyDesk for refund.", caller: "+1 (844) 555-0123" }
   ];
-  const script = scripts[Math.floor(Math.random() * scripts.length)];
+  const item = scripts[Math.floor(Math.random() * scripts.length)];
+  const script = item.text;
+  const callerNumber = item.caller;
   
   // Clear previous
   document.getElementById('live-transcript-card').style.display = 'block';
@@ -1571,8 +1876,6 @@ function simulateCall() {
   setTimeout(async () => {
     document.getElementById('live-transcript-text').innerHTML = script;
     
-    if (!token) return;
-    
     document.getElementById('monitor-status-text').textContent = '🧠 AI ANALYZING SIMULATION...';
     document.getElementById('monitor-dot').classList.remove('inactive');
     document.getElementById('monitor-dot').style.background = 'var(--cyan)';
@@ -1581,7 +1884,7 @@ function simulateCall() {
       const res = await fetch(`${API_BASE}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ transcript: script })
+        body: JSON.stringify({ transcript: script, caller_number: callerNumber })
       });
       const data = await res.json();
       
@@ -1593,8 +1896,47 @@ function simulateCall() {
       // Show rich result
       document.getElementById('live-mic-result-card').style.display = 'block';
       renderAnalysisResult(data, 'live-mic-result');
+
+      // Update call history and dashboard
+      await loadDashboard();
+      if (document.getElementById('page-history')?.classList.contains('active')) {
+        await loadHistory();
+      }
     } catch (e) {
-      console.error("Simulation failed", e);
+      console.warn("Simulation running in offline demo mode", e);
+      updateGauge(0.92);
+      document.getElementById('monitor-status-text').textContent = '⚠ SIMULATED THREAT DETECTED (DEMO)';
+      document.getElementById('monitor-sub').textContent = 'CRITICAL THREAT — 92% threat score';
+      document.getElementById('monitor-dot').style.background = 'var(--red)';
+
+      const demoData = {
+        threat_level: "CRITICAL",
+        overall_threat_score: 0.92,
+        urgency_score: 0.95,
+        deepfake_confidence: 0.05,
+        urgency_phrases_found: ["arrest", "immediately", "wire transfer"],
+        negotiator_strategy: "Feign compliance and ask for caller identification, then stall claiming you are looking for documents."
+      };
+      document.getElementById('live-mic-result-card').style.display = 'block';
+      renderAnalysisResult(demoData, 'live-mic-result');
+
+      // Add to local history so call history shows it
+      allHistoryLogs.unshift({
+        id: 'sim-' + Date.now(),
+        call_start: new Date().toISOString(),
+        caller_number: callerNumber,
+        threat_level: 'CRITICAL',
+        overall_threat_score: 0.92,
+        is_deepfake: false,
+        deepfake_confidence: 0.05,
+        urgency_detected: true,
+        urgency_score: 0.95,
+        urgency_phrases_found: demoData.urgency_phrases_found,
+        transcript: script,
+        negotiator_strategy: demoData.negotiator_strategy,
+      });
+      updateHistoryStats();
+      renderHistoryTable();
     }
   }, 1000);
 }

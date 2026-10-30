@@ -85,17 +85,23 @@ async def get_me(current_user = Depends(get_current_user)):
 @router.get("/call-history")
 async def get_call_history(current_user = Depends(get_current_user)):
     from app.core.database import CallLog
-    logs = await CallLog.find({"user_id": current_user.id}).sort([("call_start", -1)]).limit(50).to_list()
+    from app.core.seed_data import ensure_seed_logs
+
+    await ensure_seed_logs(CallLog, str(current_user.id))
+    logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(50).to_list()
     return [
         {
-            "id": log.id,
+            "id": str(log.id),
             "call_start": log.call_start.isoformat() if hasattr(log.call_start, 'isoformat') else str(log.call_start),
             "call_end": log.call_end.isoformat() if log.call_end and hasattr(log.call_end, 'isoformat') else log.call_end,
             "caller_number": log.caller_number,
-            "threat_level": log.threat_level,
+            "threat_level": log.threat_level.value if hasattr(log.threat_level, 'value') else str(log.threat_level),
             "overall_threat_score": log.overall_threat_score,
             "is_deepfake": log.is_deepfake,
+            "deepfake_confidence": getattr(log, 'deepfake_confidence', 0.0),
             "urgency_detected": log.urgency_detected,
+            "urgency_score": getattr(log, 'urgency_score', 0.0),
+            "urgency_phrases_found": getattr(log, 'urgency_phrases_found', []),
             "transcript": log.transcript,
             "negotiator_strategy": log.negotiator_strategy,
         }

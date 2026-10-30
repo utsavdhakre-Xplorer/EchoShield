@@ -1,7 +1,7 @@
 """Mock in-memory database for testing without MongoDB."""
 from typing import Dict, List, Optional
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timezone
 
 # In-memory storage
 _users_db: Dict[str, Dict] = {}
@@ -198,7 +198,14 @@ class MockCallLogQuery:
         """Sort results."""
         if sort_spec:
             field, order = sort_spec[0]
-            self.results.sort(key=lambda x: getattr(x, field), reverse=(order == -1))
+            def _sort_key(item):
+                val = getattr(item, field, None)
+                if val is None:
+                    return ""
+                if hasattr(val, "isoformat"):
+                    return val.isoformat()
+                return str(val)
+            self.results.sort(key=_sort_key, reverse=(order == -1))
         return self
 
     def limit(self, count: int) -> 'MockCallLogQuery':
@@ -206,9 +213,13 @@ class MockCallLogQuery:
         self.limit_count = count
         return self
 
+    async def count(self) -> int:
+        """Count matched logs."""
+        return len(self.results)
+
     async def to_list(self) -> List[MockCallLog]:
         """Convert to list."""
-        if self.limit_count:
+        if self.limit_count is not None:
             return self.results[:self.limit_count]
         return self.results
 
