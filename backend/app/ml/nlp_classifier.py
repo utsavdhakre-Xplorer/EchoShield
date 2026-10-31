@@ -13,6 +13,7 @@ import re
 from typing import Dict, Any, List, Optional
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from app.ml.trained_scam_model import predict_scam as predict_trained_scam
 
 logger = logging.getLogger(__name__)
 
@@ -204,6 +205,46 @@ def _classify_with_model(transcript: str) -> Dict[str, Any]:
     """Synchronous classification blending model inference and contextual rules."""
     model_loaded = _load_model()
     contextual_score, phrases, categories = _analyze_contextual_scam_signals(transcript)
+    
+        # Newly trained EchoShield ML model
+    try:
+        trained_result = predict_trained_scam(transcript)
+
+        trained_probability = trained_result["scam_probability"]
+
+        # Combine trained ML and contextual rule-based scores
+        if contextual_score > 0:
+            final_prob = round(
+                0.60 * trained_probability +
+                0.40 * contextual_score,
+                4
+            )
+        else:
+            final_prob = trained_probability
+
+        logger.info(
+            f"[NLP] Trained ML={trained_probability:.3f}, "
+            f"Contextual={contextual_score:.3f}, "
+            f"Combined={final_prob:.3f}"
+        )
+
+        return {
+            "scam_probability": final_prob,
+            "ml_available": True,
+            "label": "SCAM" if final_prob >= 0.50 else "SAFE",
+            "confidence": max(final_prob, round(1.0 - final_prob, 4)),
+            "sentiment": None,
+            "categories": list(categories.keys()),
+            "matched_signals": phrases[:10],
+            "trained_model_probability": trained_probability,
+            "contextual_probability": contextual_score,
+        }
+
+    except Exception as e:
+        logger.warning(
+            f"[NLP] Trained model unavailable: {e}. "
+            "Using existing detection engine."
+        )
 
     sentiment_label: Optional[str] = None
     sentiment_conf: float = 0.0
