@@ -42,6 +42,7 @@ _SAMPLE_RATE = 16000
 _CHUNK_SECONDS = 5
 _BUFFER_SIZE = _SAMPLE_RATE * _CHUNK_SECONDS * 2  # 2 bytes per int16 sample
 _MIN_BUFFER_SIZE = _SAMPLE_RATE * 1 * 2          # 1 second minimum for residual flush
+_MAX_FRAME_BYTES = 1024 * 1024                   # Reject oversized WebSocket frames
 
 
 def _verify_token(token: str) -> Optional[str]:
@@ -154,11 +155,16 @@ async def ws_analyze(
                 logger.info("[WS] Timeout — no audio received for 30s, closing.")
                 break
 
+            if len(data) > _MAX_FRAME_BYTES:
+                await websocket.close(code=1009, reason="Audio frame exceeds 1 MiB limit")
+                break
+
             audio_buffer.extend(data)
 
-            if len(audio_buffer) >= _BUFFER_SIZE:
+            # Drain every complete buffer to prevent backlog accumulation.
+            while len(audio_buffer) >= _BUFFER_SIZE:
                 pcm_chunk = bytes(audio_buffer[:_BUFFER_SIZE])
-                audio_buffer = audio_buffer[_BUFFER_SIZE:]
+                del audio_buffer[:_BUFFER_SIZE]
 
                 result = await _process_audio_buffer(pcm_chunk, chunk_idx)
                 chunk_idx += 1
