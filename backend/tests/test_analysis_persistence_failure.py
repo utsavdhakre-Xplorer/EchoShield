@@ -34,9 +34,9 @@ class TestAnalysisPersistenceFailure(unittest.IsolatedAsyncioTestCase):
         }
         user = SimpleNamespace(id="user-123")
 
-        with patch("app.services.scam_detector.detect_scam_tactics", new=AsyncMock(return_value=scam_result)), \
-             patch("app.services.threat_classifier.classify_threat", return_value=threat_result), \
-             patch("app.services.negotiator.generate_negotiator_strategy", new=AsyncMock(return_value="Stay cautious.")), \
+        with patch("app.api.analysis.detect_scam_tactics", new=AsyncMock(return_value=scam_result)), \
+             patch("app.api.analysis.classify_threat", return_value=threat_result), \
+             patch("app.api.analysis.generate_negotiator_strategy", new=AsyncMock(return_value="Stay cautious.")), \
              patch("app.core.database.CallLog", FakeCallLog):
             with self.assertRaises(HTTPException) as raised:
                 await analyze_transcript({"transcript": "Please verify your bank account"}, user)
