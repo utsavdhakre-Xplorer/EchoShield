@@ -125,9 +125,11 @@ class CallMonitorService extends ChangeNotifier {
     notifyListeners();
   }
 
-  void stopMonitoring() {
+  Future<void> stopMonitoring() async {
     _isMonitoring = false;
-    _stopRecording();
+    _isCallActive = false;
+    await _stopRecording();
+    await _wsService.stopStreaming();
     notifyListeners();
   }
 
@@ -291,7 +293,6 @@ class CallMonitorService extends ChangeNotifier {
     await NotificationService.showThreatAlert(
       level: result.threatLevel.name.toUpperCase(),
       score: result.overallThreatScore,
-      transcript: result.transcript,
     );
   }
 

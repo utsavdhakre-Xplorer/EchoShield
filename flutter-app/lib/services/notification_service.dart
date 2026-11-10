@@ -22,7 +22,6 @@ class NotificationService {
   static Future<void> showThreatAlert({
     required String level,
     required double score,
-    required String transcript,
   }) async {
     final androidDetails = AndroidNotificationDetails(
       'echoshield_threats',
@@ -51,14 +50,11 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    final snippet = transcript.length > 80
-        ? '${transcript.substring(0, 80)}...'
-        : transcript;
-
+    // Keep potentially sensitive transcript content out of lock-screen notifications.
     await _plugin.show(
       DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      '⚠️ $level THREAT DETECTED',
-      'Score: ${(score * 100).toStringAsFixed(0)}% | "$snippet"',
+      '⚠️ $level RISK ALERT',
+      'Risk score: ${(score * 100).toStringAsFixed(0)}%. Open EchoShield to review signals and safe next steps.',
       details,
     );
   }
