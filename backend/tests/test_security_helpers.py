@@ -2,16 +2,20 @@
 import os
 import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 from datetime import timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
 from app.core.security import (
     hash_password,
     verify_password,
     create_access_token,
     decode_token,
+    get_current_user,
 )
 
 
@@ -50,6 +54,42 @@ class TestSecurityHelpers(unittest.TestCase):
         with self.assertRaises(HTTPException) as raised:
             decode_token("not.a.valid.token")
         self.assertEqual(raised.exception.status_code, 401)
+
+
+class TestCurrentUserDependency(unittest.IsolatedAsyncioTestCase):
+    async def test_database_unavailable_returns_503(self):
+        token = create_access_token({"sub": "user-123"})
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        with patch("app.core.database.User", None):
+            with self.assertRaises(HTTPException) as raised:
+                await get_current_user(credentials)
+        self.assertEqual(raised.exception.status_code, 503)
+
+    async def test_missing_user_returns_404(self):
+        class FakeUser:
+            @staticmethod
+            async def get(user_id):
+                return None
+
+        token = create_access_token({"sub": "missing-user"})
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        with patch("app.core.database.User", FakeUser):
+            with self.assertRaises(HTTPException) as raised:
+                await get_current_user(credentials)
+        self.assertEqual(raised.exception.status_code, 404)
+
+    async def test_disabled_user_returns_403(self):
+        class FakeUser:
+            @staticmethod
+            async def get(user_id):
+                return SimpleNamespace(is_active=False)
+
+        token = create_access_token({"sub": "disabled-user"})
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        with patch("app.core.database.User", FakeUser):
+            with self.assertRaises(HTTPException) as raised:
+                await get_current_user(credentials)
+        self.assertEqual(raised.exception.status_code, 403)
 
 
 if __name__ == "__main__":
