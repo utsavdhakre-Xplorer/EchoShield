@@ -113,7 +113,7 @@ async def _process_audio_buffer(pcm_bytes: bytes, chunk_idx: int) -> dict:
         logger.error(f"[WS] Processing error on chunk {chunk_idx}: {e}")
         return {
             "chunk_index": chunk_idx,
-            "error": str(e),
+            "error": "Audio processing failed. Please try again.",
             "transcript": "",
             "threat_level": "LOW",
             "overall_threat_score": 0.0,
