@@ -41,7 +41,7 @@ async def analyze_transcript(
     
     transcript, call_id, caller_number = validate_transcript_request(request)
     
-    logger.info(f"Analyzing transcript: {transcript[:100]}...")
+    logger.info("Analyzing transcript payload (characters=%d)", len(transcript))
     
     # Run analysis tasks concurrently
     scam_task = detect_scam_tactics(transcript)
