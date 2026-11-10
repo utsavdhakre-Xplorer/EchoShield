@@ -7,7 +7,7 @@ const Duration _authTimeout = Duration(seconds: 15);
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.216.203.21:8000', // Your PC's Wi-Fi IP — change if IP changes
+  defaultValue: 'https://echoshield-api-9lg0.onrender.com', // Your PC's Wi-Fi IP — change if IP changes
 );
 
 class AuthUser {
