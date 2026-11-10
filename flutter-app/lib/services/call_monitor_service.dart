@@ -136,9 +136,8 @@ class CallMonitorService extends ChangeNotifier {
   /// Called when a call is detected (from phone_state plugin or manually)
   Future<void> onCallStarted({String? callerNumber}) async {
     if (!_isMonitoring) return;
+    _resetForNewCall();
     _isCallActive = true;
-    _currentCallId = null;
-    _chunkIndex = 0;
     notifyListeners();
 
     // Start real-time WebSocket streaming
@@ -154,6 +153,14 @@ class CallMonitorService extends ChangeNotifier {
     // Cancel any previous WS listener before creating a new one (prevents duplicate listeners)
     await _wsSubscription?.cancel();
     _wsSubscription = _wsService.threatStream.listen((data) {
+      if (!_isMonitoring || !_isCallActive) return;
+      final transcript = (data['transcript'] ?? '').toString().trim();
+      if (transcript.isEmpty ||
+          transcript.startsWith('[Transcription unavailable') ||
+          transcript == '[No speech detected]') {
+        debugPrint('[WS] No usable speech transcript; suppressing threat alert');
+        return;
+      }
       final result = ThreatResult.fromJson(data);
       _latestThreat = result;
       _currentCallId ??= result.callLogId;
@@ -167,6 +174,7 @@ class CallMonitorService extends ChangeNotifier {
   }
 
   Future<void> onCallEnded() async {
+    if (!_isCallActive) return;
     _isCallActive = false;
     await _wsSubscription?.cancel();
     _wsSubscription = null;
@@ -219,7 +227,12 @@ class CallMonitorService extends ChangeNotifier {
         callerNumber: callerNumber,
       );
 
-      if (result != null) {
+      if (result != null &&
+          _isMonitoring &&
+          _isCallActive &&
+          result.transcript.trim().isNotEmpty &&
+          !result.transcript.startsWith('[Transcription unavailable') &&
+          result.transcript != '[No speech detected]') {
         _currentCallId ??= result.callLogId;
         _latestThreat = result;
         _threatHistory.insert(0, result);
@@ -345,10 +358,25 @@ class CallMonitorService extends ChangeNotifier {
     }
   }
 
+  /// Clear the currently visible alert without starting another analysis.
+  void dismissThreatAlert() {
+    _latestThreat = null;
+    notifyListeners();
+  }
+
+  void _resetForNewCall() {
+    _latestThreat = null;
+    _currentCallId = null;
+    _chunkIndex = 0;
+    _error = null;
+  }
+
   @override
   void dispose() {
     _chunkTimer?.cancel();
+    _wsSubscription?.cancel();
     _recorder.dispose();
+    _wsService.dispose();
     super.dispose();
   }
 }

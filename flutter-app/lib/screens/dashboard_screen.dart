@@ -279,11 +279,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
 
           // Threat overlay
-          if (monitor.latestThreat != null &&
+          if (monitor.isCallActive &&
+              monitor.latestThreat != null &&
               monitor.latestThreat!.alertRequired)
             ThreatAlertOverlay(
               result: monitor.latestThreat!,
-              onDismiss: () => monitor.simulateScamCall(),
+              onDismiss: monitor.dismissThreatAlert,
             ),
         ],
       ),
