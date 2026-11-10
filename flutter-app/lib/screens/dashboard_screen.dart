@@ -105,89 +105,108 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SafeArea(
             child: Column(
               children: [
-                // Top bar
+                // Responsive top bar: brand/profile on row one, monitor toggle on row two.
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Icon(Icons.shield_outlined, color: cyan, size: 24),
-                      const SizedBox(width: 10),
-                      const Text('ECHOSHIELD',
-                          style: TextStyle(
-                              color: cyan, fontWeight: FontWeight.bold,
-                              fontSize: 16, letterSpacing: 3)),
-                      const Spacer(),
-                      // Monitoring toggle
-                      GestureDetector(
-                        onTap: () async {
-                          if (monitor.isMonitoring) {
-                            await monitor.stopMonitoring();
-                          } else {
-                            await _enableMonitoringWithDisclosure(monitor);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: monitor.isMonitoring
-                                ? green.withValues(alpha: 0.15)
-                                : Colors.white10,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: monitor.isMonitoring ? green : Colors.white24),
+                      Row(
+                        children: [
+                          const Icon(Icons.shield_outlined, color: cyan, size: 22),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'ECHOSHIELD',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: cyan,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                letterSpacing: 2,
+                              ),
+                            ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8, height: 8,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: monitor.isMonitoring ? green : Colors.white38,
-                                  boxShadow: monitor.isMonitoring
-                                      ? [BoxShadow(color: green.withValues(alpha: 0.6), blurRadius: 6)]
-                                      : null,
+                          PopupMenuButton<dynamic>(
+                            icon: const Icon(Icons.person_outline, color: Colors.white54),
+                            color: const Color(0xFF0D1B2A),
+                            itemBuilder: (context) => <PopupMenuEntry<dynamic>>[
+                              PopupMenuItem(
+                                child: Text(
+                                  auth.user?.username ?? 'User',
+                                  style: const TextStyle(color: Colors.white70),
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                monitor.isMonitoring ? 'APP MONITOR ON' : 'APP MONITOR OFF',
-                                style: TextStyle(
-                                    color: monitor.isMonitoring ? green : Colors.white38,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1),
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                onTap: () {
+                                  auth.logout().then((_) {
+                                    if (context.mounted) {
+                                      Navigator.pushReplacementNamed(context, '/login');
+                                    }
+                                  });
+                                },
+                                child: const Text(
+                                  'Logout',
+                                  style: TextStyle(color: Color(0xFFFF0055)),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      PopupMenuButton<dynamic>(
-                        icon: const Icon(Icons.person_outline, color: Colors.white54),
-                        color: const Color(0xFF0D1B2A),
-                        itemBuilder: (context) => <PopupMenuEntry<dynamic>>[
-                          PopupMenuItem(
-                            child: Text(
-                              auth.user?.username ?? 'User',
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem(
-                            onTap: () {
-                              auth.logout().then((_) {
-                                if (context.mounted) {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                }
-                              });
-                            },
-                            child: const Text(
-                              'Logout',
-                              style: TextStyle(color: Color(0xFFFF0055)),
-                            ),
-                          ),
                         ],
+                      ),
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () async {
+                            if (monitor.isMonitoring) {
+                              await monitor.stopMonitoring();
+                            } else {
+                              await _enableMonitoringWithDisclosure(monitor);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: monitor.isMonitoring
+                                  ? green.withValues(alpha: 0.15)
+                                  : Colors.white10,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: monitor.isMonitoring ? green : Colors.white24,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: monitor.isMonitoring ? green : Colors.white38,
+                                    boxShadow: monitor.isMonitoring
+                                        ? [BoxShadow(color: green.withValues(alpha: 0.6), blurRadius: 6)]
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  monitor.isMonitoring ? 'APP MONITOR ON' : 'APP MONITOR OFF',
+                                  style: TextStyle(
+                                    color: monitor.isMonitoring ? green : Colors.white38,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
