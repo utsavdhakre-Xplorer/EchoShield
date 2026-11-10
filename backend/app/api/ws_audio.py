@@ -150,7 +150,9 @@ async def ws_analyze(
     try:
         user = await User.get(user_id)
     except Exception:
-        user = None
+        logger.warning("[WS] User verification failed due to database error")
+        await websocket.close(code=1013, reason="Database temporarily unavailable")
+        return
     if not user or not getattr(user, "is_active", True):
         await websocket.close(code=4001, reason="User account is invalid or disabled")
         return
