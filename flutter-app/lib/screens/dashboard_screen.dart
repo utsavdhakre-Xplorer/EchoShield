@@ -244,13 +244,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // Nav tabs
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
                     children: [
-                      Expanded(child: _navTab('Dashboard', 0)),
-                      const SizedBox(width: 4),
-                      Expanded(child: _navTab('History', 1)),
-                      const SizedBox(width: 4),
-                      Expanded(child: _navTab('Analyzer', 2)),
+                      _navTab('Dashboard', 0),
+                      _navTab('History', 1),
+                      _navTab('Analyzer', 2),
                     ],
                   ),
                 ),
@@ -294,7 +294,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onTap: () => setState(() => _navIndex = index),
       child: Container(
         margin: EdgeInsets.zero,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? cyan.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
