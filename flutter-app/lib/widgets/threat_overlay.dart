@@ -93,8 +93,8 @@ class _ThreatOverlayState extends State<ThreatOverlay>
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    _levelColor.withOpacity(0.95),
-                    _levelColor.withOpacity(0.75),
+                    _levelColor.withValues(alpha: 0.95),
+                    _levelColor.withValues(alpha: 0.75),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -102,7 +102,7 @@ class _ThreatOverlayState extends State<ThreatOverlay>
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: _levelColor.withOpacity(0.45),
+                    color: _levelColor.withValues(alpha: 0.45),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),

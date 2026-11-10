@@ -25,7 +25,11 @@ def _get_model():
     """Lazy load Whisper model with error handling."""
     global _WHISPER_MODEL
     if _WHISPER_MODEL is None and WHISPER_AVAILABLE:
-        model_size = os.getenv("WHISPER_MODEL", "base")
+        model_size = os.getenv("WHISPER_MODEL", "base").strip().lower() or "base"
+        allowed_sizes = {"tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v2", "large-v3", "turbo"}
+        if model_size not in allowed_sizes:
+            logger.warning("Unsupported WHISPER_MODEL value; using base")
+            model_size = "base"
         logger.info(f"Loading Whisper model: {model_size}")
         _WHISPER_MODEL = whisper.load_model(model_size)
     return _WHISPER_MODEL
@@ -47,7 +51,10 @@ def _transcribe_sync(audio_path: str) -> str:
         model = _get_model()
         if model is None:
             return ""
-        result = model.transcribe(audio_path, fp16=False, language="en")
+        # Let Whisper detect the spoken language by default (e.g. Hindi, English,
+        # or mixed speech). Set WHISPER_LANGUAGE to force a specific language.
+        language = os.getenv("WHISPER_LANGUAGE", "").strip() or None
+        result = model.transcribe(audio_path, fp16=False, language=language)
         transcript = result.get("text", "").strip()
         logger.info(f"Transcribed {len(transcript)} characters from {audio_path}")
         return transcript if transcript else "[No speech detected]"

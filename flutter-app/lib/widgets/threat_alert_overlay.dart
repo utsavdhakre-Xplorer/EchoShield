@@ -75,7 +75,7 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: c, width: 1.5),
             boxShadow: [
-              BoxShadow(color: c.withOpacity(0.4), blurRadius: 20, spreadRadius: 2),
+              BoxShadow(color: c.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2),
             ],
           ),
           child: Column(
@@ -97,7 +97,7 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
                                   color: c, fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1)),
                           Text(
                             '${(widget.result.overallThreatScore * 100).toStringAsFixed(0)}% threat score',
-                            style: TextStyle(color: c.withOpacity(0.7), fontSize: 12),
+                            style: TextStyle(color: c.withValues(alpha: 0.7), fontSize: 12),
                           ),
                         ],
                       ),
@@ -115,7 +115,7 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
 
               // Expandable detail
               if (_expanded) ...[
-                Divider(color: c.withOpacity(0.2), height: 1),
+                Divider(color: c.withValues(alpha: 0.2), height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -128,7 +128,7 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
                       const SizedBox(height: 12),
                       Text('AI NEGOTIATOR STRATEGY',
                           style: TextStyle(
-                              color: const Color(0xFF00F5FF).withOpacity(0.5),
+                              color: const Color(0xFF00F5FF).withValues(alpha: 0.5),
                               fontSize: 10,
                               letterSpacing: 2)),
                       const SizedBox(height: 6),
@@ -151,7 +151,7 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
                     onPressed: widget.onDismiss,
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white38,
-                      backgroundColor: Colors.white.withOpacity(0.05),
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
@@ -171,9 +171,9 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
       margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
     );

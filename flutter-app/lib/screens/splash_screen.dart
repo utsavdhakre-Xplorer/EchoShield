@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
                     border: Border.all(color: const Color(0xFF00F5FF), width: 2),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF00F5FF).withOpacity(0.4),
+                        color: const Color(0xFF00F5FF).withValues(alpha: 0.4),
                         blurRadius: 30,
                         spreadRadius: 10,
                       ),
@@ -91,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
               Text(
                 'AI SCAMMER INTERCEPTOR',
                 style: TextStyle(
-                  color: const Color(0xFF00F5FF).withOpacity(0.6),
+                  color: const Color(0xFF00F5FF).withValues(alpha: 0.6),
                   fontSize: 12,
                   letterSpacing: 3,
                 ),

@@ -12,7 +12,7 @@ import 'ws_audio_service.dart';
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.202.181.147:8000', // Your PC's Wi-Fi IP — change if IP changes
+  defaultValue: 'http://10.216.203.21:8000', // Your PC's Wi-Fi IP — change if IP changes
 );
 
 enum ThreatLevel { low, medium, high, critical }

@@ -42,6 +42,7 @@ _SAMPLE_RATE = 16000
 _CHUNK_SECONDS = 5
 _BUFFER_SIZE = _SAMPLE_RATE * _CHUNK_SECONDS * 2  # 2 bytes per int16 sample
 _MIN_BUFFER_SIZE = _SAMPLE_RATE * 1 * 2          # 1 second minimum for residual flush
+_MAX_FRAME_BYTES = 1024 * 1024                   # Reject oversized WebSocket frames
 
 
 def _verify_token(token: str) -> Optional[str]:
@@ -112,7 +113,7 @@ async def _process_audio_buffer(pcm_bytes: bytes, chunk_idx: int) -> dict:
         logger.error(f"[WS] Processing error on chunk {chunk_idx}: {e}")
         return {
             "chunk_index": chunk_idx,
-            "error": str(e),
+            "error": "Audio processing failed. Please try again.",
             "transcript": "",
             "threat_level": "LOW",
             "overall_threat_score": 0.0,
@@ -140,6 +141,19 @@ async def ws_analyze(
         await websocket.close(code=4001, reason="Invalid token")
         return
 
+    # Match HTTP auth behavior: token alone is insufficient if account is disabled/deleted.
+    from app.core.database import User
+    if User is None:
+        await websocket.close(code=1013, reason="Database unavailable")
+        return
+    try:
+        user = await User.get(user_id)
+    except Exception:
+        user = None
+    if not user or not getattr(user, "is_active", True):
+        await websocket.close(code=4001, reason="User account is invalid or disabled")
+        return
+
     await websocket.accept()
     logger.info(f"[WS] Client connected: user={user_id}")
 
@@ -154,11 +168,16 @@ async def ws_analyze(
                 logger.info("[WS] Timeout — no audio received for 30s, closing.")
                 break
 
+            if len(data) > _MAX_FRAME_BYTES:
+                await websocket.close(code=1009, reason="Audio frame exceeds 1 MiB limit")
+                break
+
             audio_buffer.extend(data)
 
-            if len(audio_buffer) >= _BUFFER_SIZE:
+            # Drain every complete buffer to prevent backlog accumulation.
+            while len(audio_buffer) >= _BUFFER_SIZE:
                 pcm_chunk = bytes(audio_buffer[:_BUFFER_SIZE])
-                audio_buffer = audio_buffer[_BUFFER_SIZE:]
+                del audio_buffer[:_BUFFER_SIZE]
 
                 result = await _process_audio_buffer(pcm_chunk, chunk_idx)
                 chunk_idx += 1

@@ -42,92 +42,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final stats = await api.getStats();
     final logs = await api.getCallLogs(limit: 30);
     setState(() {
-      _stats = stats ?? {
-        'total_calls_analyzed': _fallbackLogs.length,
-        'scam_calls_detected': 3,
-        'deepfake_calls_detected': 1,
-        'average_threat_score': 0.51,
-        'threat_breakdown': {'LOW': 2, 'MEDIUM': 1, 'HIGH': 1, 'CRITICAL': 2},
-      };
-      _logs = logs.isNotEmpty ? logs : _fallbackLogs;
+      _stats = stats;
+      _logs = logs;
       _loadingData = false;
     });
   }
-
-  static final List<Map<String, dynamic>> _fallbackLogs = [
-    {
-      'id': 'fallback_1',
-      'caller_number': '+1 (800) 555-0199',
-      'call_start': DateTime.now().subtract(const Duration(hours: 2, minutes: 15)).toIso8601String(),
-      'threat_level': 'CRITICAL',
-      'overall_threat_score': 0.95,
-      'is_deepfake': false,
-      'deepfake_confidence': 0.08,
-      'urgency_detected': true,
-      'transcript': 'This is Officer James from the Internal Revenue Service. A federal warrant has been issued under your Social Security Number for unpaid back taxes. You must resolve this immediately via wire transfer.',
-      'negotiator_strategy': 'Scammer is using extreme legal intimidation and artificial urgency. Feign compliance and ask for badge number, then stall claiming you are looking for documents.',
-    },
-    {
-      'id': 'fallback_2',
-      'caller_number': '+1 (312) 555-0142',
-      'call_start': DateTime.now().subtract(const Duration(days: 1, hours: 4)).toIso8601String(),
-      'threat_level': 'CRITICAL',
-      'overall_threat_score': 0.92,
-      'is_deepfake': true,
-      'deepfake_confidence': 0.89,
-      'urgency_detected': true,
-      'transcript': 'Grandpa, it\'s me! I\'m in huge trouble. I got into a car accident and need \$3,500 for bail before 5 PM. Please don\'t tell mom and dad, just send the money via Zelle.',
-      'negotiator_strategy': 'High-confidence synthetic voice clone detected. Ask a personal verification question only the real grandchild would know. Do not send funds.',
-    },
-    {
-      'id': 'fallback_3',
-      'caller_number': '+1 (888) 555-0177',
-      'call_start': DateTime.now().subtract(const Duration(days: 2, hours: 6)).toIso8601String(),
-      'threat_level': 'HIGH',
-      'overall_threat_score': 0.78,
-      'is_deepfake': false,
-      'deepfake_confidence': 0.12,
-      'urgency_detected': true,
-      'transcript': 'Security alert from Chase Fraud Prevention. We have flagged two suspicious transactions on your debit card. To stop these charges, please read back the 6-digit passcode we sent.',
-      'negotiator_strategy': 'Classic OTP harvesting scam. Banks will never ask for your verification code over the phone. Hang up and call the number on the back of your card.',
-    },
-    {
-      'id': 'fallback_4',
-      'caller_number': '+1 (844) 555-0123',
-      'call_start': DateTime.now().subtract(const Duration(days: 3, hours: 8)).toIso8601String(),
-      'threat_level': 'MEDIUM',
-      'overall_threat_score': 0.54,
-      'is_deepfake': false,
-      'deepfake_confidence': 0.05,
-      'urgency_detected': false,
-      'transcript': 'Automated message from Amazon Customer Support. An order for an iPhone 15 Pro Max for \$1,199 has been ordered on your account. Connect via AnyDesk for cancellation refund.',
-      'negotiator_strategy': 'Remote access phishing scam. Do not install software or grant access.',
-    },
-    {
-      'id': 'fallback_5',
-      'caller_number': '+1 (415) 555-0188',
-      'call_start': DateTime.now().subtract(const Duration(days: 4, hours: 12)).toIso8601String(),
-      'threat_level': 'LOW',
-      'overall_threat_score': 0.04,
-      'is_deepfake': false,
-      'deepfake_confidence': 0.02,
-      'urgency_detected': false,
-      'transcript': 'Good morning, this is St. Jude Medical Clinic calling to confirm your annual physical appointment scheduled for Thursday at 10:00 AM with Dr. Bennett.',
-      'negotiator_strategy': 'Standard legitimate medical confirmation call. No scam patterns detected.',
-    },
-    {
-      'id': 'fallback_6',
-      'caller_number': '+1 (650) 555-0164',
-      'call_start': DateTime.now().subtract(const Duration(days: 6, hours: 1)).toIso8601String(),
-      'threat_level': 'LOW',
-      'overall_threat_score': 0.02,
-      'is_deepfake': false,
-      'deepfake_confidence': 0.01,
-      'urgency_detected': false,
-      'transcript': 'Hello, this is FedEx Delivery Services. Your package with tracking ending in 8921 is scheduled for delivery today by 4:30 PM.',
-      'negotiator_strategy': 'Legitimate delivery notification. Zero threat factors identified.',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +88,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: monitor.isMonitoring
-                                ? green.withOpacity(0.15)
+                                ? green.withValues(alpha: 0.15)
                                 : Colors.white10,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -184,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   shape: BoxShape.circle,
                                   color: monitor.isMonitoring ? green : Colors.white38,
                                   boxShadow: monitor.isMonitoring
-                                      ? [BoxShadow(color: green.withOpacity(0.6), blurRadius: 6)]
+                                      ? [BoxShadow(color: green.withValues(alpha: 0.6), blurRadius: 6)]
                                       : null,
                                 ),
                               ),
@@ -242,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Divider(color: Colors.white.withOpacity(0.06), height: 1),
+                Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
 
                 Expanded(
                   child: RefreshIndicator(
@@ -283,10 +202,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? cyan.withOpacity(0.12) : Colors.transparent,
+          color: selected ? cyan.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected ? cyan.withOpacity(0.4) : Colors.transparent),
+              color: selected ? cyan.withValues(alpha: 0.4) : Colors.transparent),
         ),
         child: Text(
           label,
@@ -309,6 +228,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        if (stats == null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFAA00).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFFFAA00).withValues(alpha: 0.3)),
+            ),
+            child: const Text(
+              'Dashboard data is unavailable. Pull down to refresh and check your connection.',
+              style: TextStyle(color: Color(0xFFFFAA00), fontSize: 12),
+            ),
+          ),
         // Threat gauge
         ThreatGauge(score: score, threatLevel: threat?.threatLevel.name.toUpperCase() ?? 'IDLE'),
         const SizedBox(height: 20),
@@ -360,7 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: const Text('SIMULATE SCAM CALL'),
             style: OutlinedButton.styleFrom(
               foregroundColor: cyan,
-              side: BorderSide(color: cyan.withOpacity(0.4)),
+              side: BorderSide(color: cyan.withValues(alpha: 0.4)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
@@ -371,7 +304,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (threat != null) ...[
           Text('LATEST ANALYSIS',
               style: TextStyle(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 11,
                   letterSpacing: 2)),
           const SizedBox(height: 8),
@@ -398,9 +331,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .map((p) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFF0055).withOpacity(0.15),
+                                color: const Color(0xFFFF0055).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFFF0055).withOpacity(0.3)),
+                                border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.3)),
                               ),
                               child: Text(p,
                                   style: const TextStyle(
@@ -413,9 +346,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: cyan.withOpacity(0.05),
+                    color: cyan.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: cyan.withOpacity(0.2)),
+                    border: Border.all(color: cyan.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +358,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: Text(
                           threat.negotiatorStrategy,
-                          style: TextStyle(color: cyan.withOpacity(0.85), fontSize: 12),
+                          style: TextStyle(color: cyan.withValues(alpha: 0.85), fontSize: 12),
                         ),
                       ),
                     ],
@@ -494,7 +427,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
       padding: const EdgeInsets.all(20),
       children: [
         Text('TEXT ANALYZER',
-            style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11, letterSpacing: 2)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11, letterSpacing: 2)),
         const SizedBox(height: 12),
         TextField(
           controller: _ctrl,
@@ -539,7 +472,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
       decoration: BoxDecoration(
         color: const Color(0xFF0D1B2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.withOpacity(0.4)),
+        border: Border.all(color: c.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,7 +481,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: c.withOpacity(0.15),
+                color: c.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(level,
@@ -563,9 +496,9 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: cyan.withOpacity(0.05),
+                color: cyan.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: cyan.withOpacity(0.2)),
+                border: Border.all(color: cyan.withValues(alpha: 0.2)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,7 +508,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
                   Expanded(
                     child: Text(
                       r['negotiator_strategy'],
-                      style: TextStyle(color: cyan.withOpacity(0.85), fontSize: 12),
+                      style: TextStyle(color: cyan.withValues(alpha: 0.85), fontSize: 12),
                     ),
                   ),
                 ],

@@ -86,7 +86,7 @@ class _ThreatGaugeState extends State<ThreatGauge>
                         Text(
                           widget.threatLevel,
                           style: TextStyle(
-                            color: _scoreColor(s).withOpacity(0.7),
+                            color: _scoreColor(s).withValues(alpha: 0.7),
                             fontSize: 12,
                             letterSpacing: 3,
                             fontWeight: FontWeight.bold,
@@ -123,9 +123,9 @@ class _ThreatGaugeState extends State<ThreatGauge>
           height: active ? 12 : 8,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? color : color.withOpacity(0.25),
+            color: active ? color : color.withValues(alpha: 0.25),
             boxShadow: active
-                ? [BoxShadow(color: color.withOpacity(0.6), blurRadius: 8)]
+                ? [BoxShadow(color: color.withValues(alpha: 0.6), blurRadius: 8)]
                 : null,
           ),
         ),
@@ -156,7 +156,7 @@ class _GaugePainter extends CustomPainter {
 
     // Track
     final trackPaint = Paint()
-      ..color = Colors.white.withOpacity(0.07)
+      ..color = Colors.white.withValues(alpha: 0.07)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 16
       ..strokeCap = StrokeCap.round;
@@ -167,7 +167,7 @@ class _GaugePainter extends CustomPainter {
     if (score > 0) {
       final fillPaint = Paint()
         ..shader = SweepGradient(
-          colors: [color.withOpacity(0.5), color],
+          colors: [color.withValues(alpha: 0.5), color],
           startAngle: startAngle,
           endAngle: startAngle + sweepAngle * score,
         ).createShader(Rect.fromCircle(center: center, radius: radius))
@@ -183,7 +183,7 @@ class _GaugePainter extends CustomPainter {
 
       // Glow
       final glowPaint = Paint()
-        ..color = color.withOpacity(0.2)
+        ..color = color.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 28
         ..strokeCap = StrokeCap.round

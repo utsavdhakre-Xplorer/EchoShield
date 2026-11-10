@@ -22,15 +22,15 @@ class User(Document):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    username: str
-    password: str
-    full_name: Optional[str] = None
-    family_contact_email: Optional[str] = None
+    username: str = Field(min_length=3, max_length=30, pattern=r"^[A-Za-z0-9_]+$")
+    password: str = Field(min_length=8, max_length=128)
+    full_name: Optional[str] = Field(default=None, max_length=100)
+    family_contact_email: Optional[EmailStr] = None
 
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1, max_length=128)
 
 
 class UserResponse(BaseModel):

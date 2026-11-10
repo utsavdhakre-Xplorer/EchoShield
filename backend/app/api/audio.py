@@ -13,6 +13,22 @@ from app.services.negotiator import generate_negotiator_strategy
 from app.ml.audio_features import extract_audio_features
 import logging
 
+MAX_AUDIO_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MiB
+UPLOAD_READ_CHUNK_BYTES = 1024 * 1024
+
+async def _read_bounded_audio_upload(upload: UploadFile) -> bytes:
+    chunks = []
+    total = 0
+    while True:
+        chunk = await upload.read(UPLOAD_READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_AUDIO_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Audio upload exceeds the 15 MiB limit")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -21,13 +37,13 @@ router = APIRouter()
 async def stream_audio_chunk(
     audio: UploadFile = File(...),
     call_id: Optional[str] = Form(None),
-    chunk_index: int = Form(0),
-    caller_number: Optional[str] = Form(None),
+    chunk_index: int = Form(0, ge=0),
+    caller_number: Optional[str] = Form(None, max_length=32),
     current_user = Depends(get_current_user),
 ):
     """Receive audio chunk, transcribe, analyze, and return threat result."""
     from app.core.database import CallLog
-    audio_bytes = await audio.read()
+    audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
     if not audio_bytes or len(audio_bytes) < 44:
@@ -66,7 +82,14 @@ async def stream_audio_chunk(
 
         # Upsert call log
         if call_id:
-            log = await CallLog.get(call_id)
+            try:
+                log = await CallLog.get(call_id)
+            except (ValueError, TypeError):
+                log = None
+
+            # A call ID is not an authorization token: only its owner may append chunks.
+            if log and str(log.user_id) != str(current_user.id):
+                raise HTTPException(status_code=403, detail="You do not own this call log")
         else:
             log = None
 
@@ -117,12 +140,12 @@ async def stream_audio_chunk(
 @router.post("/analyze-audio", response_model=ThreatResult)
 async def analyze_uploaded_audio(
     audio: UploadFile = File(...),
-    caller_number: Optional[str] = Form(None),
+    caller_number: Optional[str] = Form(None, max_length=32),
     current_user = Depends(get_current_user),
 ):
     """Analyze a complete uploaded audio recording."""
     from app.core.database import CallLog
-    audio_bytes = await audio.read()
+    audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
     if not audio_bytes or len(audio_bytes) < 44:
