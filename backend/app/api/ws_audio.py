@@ -141,6 +141,19 @@ async def ws_analyze(
         await websocket.close(code=4001, reason="Invalid token")
         return
 
+    # Match HTTP auth behavior: token alone is insufficient if account is disabled/deleted.
+    from app.core.database import User
+    if User is None:
+        await websocket.close(code=1013, reason="Database unavailable")
+        return
+    try:
+        user = await User.get(user_id)
+    except Exception:
+        user = None
+    if not user or not getattr(user, "is_active", True):
+        await websocket.close(code=4001, reason="User account is invalid or disabled")
+        return
+
     await websocket.accept()
     logger.info(f"[WS] Client connected: user={user_id}")
 
