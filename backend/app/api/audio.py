@@ -114,7 +114,7 @@ async def stream_audio_chunk(
         try:
             await log.save()
         except Exception as e:
-            logger.warning(f"Failed to save call log: {e}")
+            logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
 
         return ThreatResult(
             call_log_id=str(log.id),
@@ -188,7 +188,7 @@ async def analyze_uploaded_audio(
         try:
             await log.insert()
         except Exception as e:
-            logger.warning(f"Failed to insert call log: {e}")
+            logger.warning("Failed to insert call log (exception type: %s)", type(e).__name__)
 
         return ThreatResult(
             call_log_id=str(log.id),
