@@ -21,6 +21,12 @@ async def analyze_transcript(
     
     transcript = request.get("transcript", "")
     call_id = request.get("call_id")
+    caller_number = request.get("caller_number")
+
+    if caller_number is not None and (not isinstance(caller_number, str) or len(caller_number) > 32):
+        raise HTTPException(status_code=400, detail="Caller number must be a string of at most 32 characters")
+    if call_id is not None and (not isinstance(call_id, str) or len(call_id) > 100):
+        raise HTTPException(status_code=400, detail="Call ID must be a string of at most 100 characters")
 
     if not isinstance(transcript, str):
         raise HTTPException(status_code=400, detail="Transcript must be a string")
@@ -63,7 +69,7 @@ async def analyze_transcript(
     try:
         new_log = CallLog(
             user_id=str(current_user.id),
-            caller_number=request.get("caller_number"),
+            caller_number=caller_number,
             transcript=transcript,
             threat_level=threat["threat_level"],
             deepfake_confidence=0.0,
@@ -108,6 +114,8 @@ async def get_call_logs(
     """Get call logs for current user."""
     from app.core.database import CallLog
     from app.core.seed_data import ensure_seed_logs
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
     
     await ensure_seed_logs(CallLog, str(current_user.id))
     logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
