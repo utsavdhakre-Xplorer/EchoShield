@@ -38,7 +38,7 @@ async def startup_event():
     try:
         await connect_db()
     except Exception as e:
-        logger.exception("Database initialization failed: %s", e)
+        logger.error("Database initialization failed (exception type: %s)", type(e).__name__)
     logger.info("EchoShield backend started. database_connected=%s", is_db_connected())
 
 @app.on_event("shutdown")
