@@ -145,13 +145,15 @@ class CallMonitorService extends ChangeNotifier {
         .replaceAll('https://', '')
         .replaceAll('http://', '')
         .split(':').first;
-    _wsService.startStreaming(
-      host: host,
-      token: _token ?? '',
-    );
+    // Use the authenticated HTTP chunk pipeline. The WebSocket stream is
+    // currently rejected by Render with HTTP 403 for this mobile client, and
+    // was competing with the same microphone capture used by chunk recording.
+    // The chunk pipeline below persists analysis results to the user's call log.
 
     // Cancel any previous WS listener before creating a new one (prevents duplicate listeners)
     await _wsSubscription?.cancel();
+    _wsSubscription = null;
+    /* _wsService threat listener disabled; HTTP chunk endpoint is authoritative.
     _wsSubscription = _wsService.threatStream.listen((data) {
       if (!_isMonitoring || !_isCallActive) return;
       final transcript = (data['transcript'] ?? '').toString().trim();
@@ -169,6 +171,7 @@ class CallMonitorService extends ChangeNotifier {
       }
       notifyListeners();
     });
+    */
 
     await _startChunkedRecording(callerNumber: callerNumber);
   }
@@ -199,6 +202,7 @@ class CallMonitorService extends ChangeNotifier {
     final tmpPath = '${tmpDir.path}/echoshield_chunk_$_chunkIndex.wav';
 
     try {
+      if (!_isMonitoring || !_isCallActive) return;
       if (await _recorder.isRecording()) {
         await _recorder.stop();
       }
@@ -220,6 +224,7 @@ class CallMonitorService extends ChangeNotifier {
       final file = File(tmpPath);
       if (!file.existsSync()) return;
 
+      debugPrint('[CALL] Captured audio chunk $_chunkIndex (${file.lengthSync()} bytes); sending to API');
       final result = await _sendAudioChunk(
         file,
         callId: _currentCallId,
@@ -273,8 +278,10 @@ class CallMonitorService extends ChangeNotifier {
       final response = await http.Response.fromStream(streamed);
 
       if (response.statusCode == 200) {
+        debugPrint('[CALL] API analysis succeeded for chunk $chunkIndex');
         return ThreatResult.fromJson(jsonDecode(response.body));
       }
+      debugPrint('[CALL] Audio API failed: HTTP ${response.statusCode}');
     } catch (e) {
       debugPrint('API send error: $e');
     }
