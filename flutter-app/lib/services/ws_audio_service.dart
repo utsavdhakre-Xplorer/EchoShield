@@ -7,7 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 /// WebSocket-based real-time audio streaming service.
 ///
-/// Connects to `ws://<host>/ws/analyze?token=<jwt>`.
+/// Connects to `wss://<host>/ws/analyze?token=<jwt>`.
 /// Streams raw PCM audio frames (16kHz mono int16) and emits
 /// parsed ThreatResult objects via [threatStream].
 class WsAudioService {
@@ -25,7 +25,8 @@ class WsAudioService {
   Future<void> startStreaming({
     required String host,
     required String token,
-    int port = 8000,
+    int port = 443,
+    bool secure = true,
   }) async {
     if (_isStreaming) return;
 
@@ -35,7 +36,13 @@ class WsAudioService {
       return;
     }
 
-    final wsUrl = Uri.parse('ws://$host:$port/ws/analyze?token=$token');
+    final wsUrl = Uri(
+      scheme: secure ? 'wss' : 'ws',
+      host: host,
+      port: port,
+      path: '/ws/analyze',
+      queryParameters: {'token': token},
+    );
     debugPrint('[WS] Connecting to audio analysis endpoint');
 
     try {

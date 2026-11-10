@@ -5,6 +5,7 @@ from app.services.threat_classifier import classify_threat
 from app.services.negotiator import generate_negotiator_strategy
 from typing import Optional
 import logging
+from app.core.seed_data import ensure_seed_logs
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

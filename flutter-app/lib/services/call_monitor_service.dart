@@ -12,7 +12,7 @@ import 'ws_audio_service.dart';
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.216.203.21:8000', // Your PC's Wi-Fi IP — change if IP changes
+  defaultValue: 'https://echoshield-api-9lg0.onrender.com',
 );
 
 enum ThreatLevel { low, medium, high, critical }
@@ -298,10 +298,15 @@ class CallMonitorService extends ChangeNotifier {
 
   /// Simulate a scam call for testing
   Future<void> simulateScamCall() async {
-    _isCallActive = true;
-    notifyListeners();
+    if (_token == null || _token!.isEmpty) {
+      _error = 'Please log in again to run the simulation.';
+      notifyListeners();
+      return;
+    }
 
-    if (_token == null) return;
+    _isCallActive = true;
+    _error = null;
+    notifyListeners();
 
     try {
       final response = await http.post(
@@ -324,14 +329,20 @@ class CallMonitorService extends ChangeNotifier {
           await _triggerAlert(result);
         }
         notifyListeners();
+      } else {
+        _error = 'Simulation failed (HTTP ${response.statusCode}). Please refresh or log in again.';
+        debugPrint('Simulate call failed with status ${response.statusCode}');
+        notifyListeners();
       }
     } catch (e) {
-      debugPrint('Simulate call error: $e');
+      _error = 'Unable to reach EchoShield server. Check your connection.';
+      debugPrint('Simulate call error: ${e.runtimeType}');
+      notifyListeners();
+    } finally {
+      await Future.delayed(const Duration(seconds: 2));
+      _isCallActive = false;
+      notifyListeners();
     }
-
-    await Future.delayed(const Duration(seconds: 2));
-    _isCallActive = false;
-    notifyListeners();
   }
 
   @override
