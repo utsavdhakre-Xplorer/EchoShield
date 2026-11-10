@@ -51,7 +51,7 @@ async def analyze_transcript(
     except asyncio.TimeoutError:
         logger.error("Transcript scam detection timed out")
         raise HTTPException(status_code=504, detail="Scam detection timed out; please retry")
-    logger.info(f"Scam detection complete: {scam_result['urgency_score']}")
+    logger.info("Scam detection complete: urgency_score=%s", scam_result["urgency_score"])
     
     threat = classify_threat(
         deepfake_confidence=0.0,
@@ -61,7 +61,7 @@ async def analyze_transcript(
         deepfake_verified=False,
         tactics_detected=scam_result.get("tactics_detected"),
     )
-    logger.info(f"Threat classification: {threat['threat_level']}")
+    logger.info("Threat classification complete: threat_level=%s", threat["threat_level"])
     
     try:
         strategy = await asyncio.wait_for(
@@ -96,10 +96,10 @@ async def analyze_transcript(
         await new_log.insert()
         call_log_id = str(new_log.id)
     except Exception as e:
-        logger.warning(f"Failed to save call log: {e}")
+        logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
         call_log_id = call_id or str(uuid4())
 
-    logger.info(f"Analysis complete. Returning response.")
+    logger.info("Transcript analysis complete; returning response.")
 
     return {
         "call_log_id": call_log_id,
