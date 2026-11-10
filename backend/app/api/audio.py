@@ -66,7 +66,14 @@ async def stream_audio_chunk(
 
         # Upsert call log
         if call_id:
-            log = await CallLog.get(call_id)
+            try:
+                log = await CallLog.get(call_id)
+            except (ValueError, TypeError):
+                log = None
+
+            # A call ID is not an authorization token: only its owner may append chunks.
+            if log and str(log.user_id) != str(current_user.id):
+                raise HTTPException(status_code=403, detail="You do not own this call log")
         else:
             log = None
 
