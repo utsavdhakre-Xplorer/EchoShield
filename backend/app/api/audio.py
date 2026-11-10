@@ -140,12 +140,12 @@ async def stream_audio_chunk(
 @router.post("/analyze-audio", response_model=ThreatResult)
 async def analyze_uploaded_audio(
     audio: UploadFile = File(...),
-    caller_number: Optional[str] = Form(None),
+    caller_number: Optional[str] = Form(None, max_length=32),
     current_user = Depends(get_current_user),
 ):
     """Analyze a complete uploaded audio recording."""
     from app.core.database import CallLog
-    audio_bytes = await audio.read()
+    audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
     if not audio_bytes or len(audio_bytes) < 44:
