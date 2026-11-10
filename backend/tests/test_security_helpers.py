@@ -83,6 +83,19 @@ class TestCurrentUserDependency(unittest.IsolatedAsyncioTestCase):
                 await get_current_user(credentials)
         self.assertEqual(raised.exception.status_code, 404)
 
+    async def test_user_lookup_database_error_returns_503(self):
+        class FakeUser:
+            @staticmethod
+            async def get(user_id):
+                raise RuntimeError("database timeout")
+
+        token = create_access_token({"sub": "user-123"})
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+        with patch("app.core.database.User", FakeUser):
+            with self.assertRaises(HTTPException) as raised:
+                await get_current_user(credentials)
+        self.assertEqual(raised.exception.status_code, 503)
+
     async def test_disabled_user_returns_403(self):
         class FakeUser:
             @staticmethod
