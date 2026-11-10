@@ -129,8 +129,12 @@ async def get_call_logs(
     if CallLog is None:
         raise HTTPException(status_code=503, detail="Database is unavailable")
     
-    await ensure_seed_logs(CallLog, str(current_user.id))
-    logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
+    try:
+        await ensure_seed_logs(CallLog, str(current_user.id))
+        logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
+    except Exception as exc:
+        logger.warning("Call logs retrieval failed (exception type: %s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Call logs are temporarily unavailable") from exc
     return [
         {
             "id": str(log.id),
@@ -162,8 +166,12 @@ async def get_stats(current_user = Depends(get_current_user)):
     if CallLog is None:
         raise HTTPException(status_code=503, detail="Database is unavailable")
 
-    await ensure_seed_logs(CallLog, str(current_user.id))
-    all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
+    try:
+        await ensure_seed_logs(CallLog, str(current_user.id))
+        all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
+    except Exception as exc:
+        logger.warning("Statistics retrieval failed (exception type: %s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Statistics are temporarily unavailable") from exc
     total_calls = len(all_logs)
     # threat_level may be a ThreatLevel enum or a plain string — normalise to str
     scam_calls = sum(1 for l in all_logs if str(getattr(l.threat_level, 'value', l.threat_level)) in ["HIGH", "CRITICAL"])
