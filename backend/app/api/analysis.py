@@ -11,14 +11,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=dict)
-async def analyze_transcript(
-    request: dict = Body(...),
-    current_user = Depends(get_current_user),
-):
-    """Analyze a transcript string directly and return threat assessment."""
-    import asyncio
-    
+def validate_transcript_request(request: dict):
+    """Validate and normalize user-provided transcript analysis fields."""
     transcript = request.get("transcript", "")
     call_id = request.get("call_id")
     caller_number = request.get("caller_number")
@@ -27,7 +21,6 @@ async def analyze_transcript(
         raise HTTPException(status_code=400, detail="Caller number must be a string of at most 32 characters")
     if call_id is not None and (not isinstance(call_id, str) or len(call_id) > 100):
         raise HTTPException(status_code=400, detail="Call ID must be a string of at most 100 characters")
-
     if not isinstance(transcript, str):
         raise HTTPException(status_code=400, detail="Transcript must be a string")
     transcript = transcript.strip()
@@ -35,12 +28,23 @@ async def analyze_transcript(
         raise HTTPException(status_code=400, detail="Transcript too short")
     if len(transcript) > 10000:
         raise HTTPException(status_code=413, detail="Transcript exceeds the 10000-character limit")
+    return transcript, call_id, caller_number
+
+
+@router.post("/analyze", response_model=dict)
+async def analyze_transcript(
+    request: dict = Body(...),
+    current_user = Depends(get_current_user),
+):
+    """Analyze a transcript string directly and return threat assessment."""
+    import asyncio
+    
+    transcript, call_id, caller_number = validate_transcript_request(request)
     
     logger.info(f"Analyzing transcript: {transcript[:100]}...")
     
     # Run analysis tasks concurrently
     scam_task = detect_scam_tactics(transcript)
-    strategy_task = None  # Will create after threat classification
     
     try:
         scam_result = await asyncio.wait_for(scam_task, timeout=65.0)
