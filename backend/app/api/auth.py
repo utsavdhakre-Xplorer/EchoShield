@@ -11,6 +11,8 @@ router = APIRouter()
 @router.post("/signup", response_model=dict, status_code=201)
 async def signup(user_data: UserCreate):
     from app.core.database import User
+    if User is None:
+        raise HTTPException(status_code=503, detail="Database unavailable; signup is temporarily disabled")
     
     # Check existing email
     email = str(user_data.email).lower()
@@ -49,6 +51,8 @@ async def signup(user_data: UserCreate):
 @router.post("/login", response_model=dict)
 async def login(credentials: UserLogin):
     from app.core.database import User
+    if User is None:
+        raise HTTPException(status_code=503, detail="Database unavailable; login is temporarily disabled")
     
     user = await User.find_one({"email": str(credentials.email).lower()})
     if not user or not verify_password(credentials.password, user.hashed_password):
