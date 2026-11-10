@@ -1,4 +1,5 @@
 from typing import Dict, Any, List, Optional
+import math
 from app.models.call_log import ThreatLevel
 import logging
 
@@ -28,8 +29,20 @@ def classify_threat(
     """
     factors: List[str] = []
 
+    # Keep malformed or non-finite model outputs from corrupting the risk score.
+    def bounded_score(value: Any) -> float:
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        if not math.isfinite(score):
+            return 0.0
+        return max(0.0, min(score, 1.0))
+
+    deepfake_confidence = bounded_score(deepfake_confidence)
+
     # 1. Evaluate Scam Intent
-    scam_score = max(0.0, min(urgency_score, 1.0))
+    scam_score = bounded_score(urgency_score)
     if tactics_detected:
         factors.append(f"Scam tactics identified ({len(tactics_detected)}): {', '.join(tactics_detected)}")
     elif urgency_detected or scam_score >= 0.40:
