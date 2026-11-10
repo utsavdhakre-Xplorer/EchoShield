@@ -64,5 +64,37 @@ class TestAuthEndpointReliability(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(disabled_user.last_login)
 
 
+    async def test_login_database_lookup_error_returns_service_unavailable(self):
+        class FailingUser:
+            @staticmethod
+            async def find_one(query):
+                raise RuntimeError("private database detail")
+
+        credentials = UserLogin(email="user@example.com", password="ValidPass123")
+        with patch("app.core.database.User", FailingUser):
+            with self.assertRaises(HTTPException) as raised:
+                await login(credentials)
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(raised.exception.detail, "Database temporarily unavailable")
+
+    async def test_signup_uniqueness_check_error_returns_service_unavailable(self):
+        class FailingUser:
+            @staticmethod
+            async def find_one(query):
+                raise RuntimeError("private database detail")
+
+        user_data = UserCreate(
+            email="user@example.com",
+            username="sample_user",
+            password="ValidPass123",
+        )
+        from app.api.auth import signup
+        with patch("app.core.database.User", FailingUser):
+            with self.assertRaises(HTTPException) as raised:
+                await signup(user_data)
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(raised.exception.detail, "Database temporarily unavailable")
+
+
 if __name__ == "__main__":
     unittest.main()
