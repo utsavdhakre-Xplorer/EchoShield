@@ -100,6 +100,7 @@ async def stream_audio_chunk(
             await log.save()
         except Exception as e:
             logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
+            raise HTTPException(status_code=503, detail="Unable to save audio analysis; database temporarily unavailable") from e
 
         return ThreatResult(
             call_log_id=str(log.id),
@@ -175,6 +176,7 @@ async def analyze_uploaded_audio(
             await log.insert()
         except Exception as e:
             logger.warning("Failed to insert call log (exception type: %s)", type(e).__name__)
+            raise HTTPException(status_code=503, detail="Unable to save audio analysis; database temporarily unavailable") from e
 
         return ThreatResult(
             call_log_id=str(log.id),
