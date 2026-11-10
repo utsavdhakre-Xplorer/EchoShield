@@ -13,18 +13,27 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_ENV = os.getenv("ECHOSHIELD_ENV", "development").strip().lower()
 app = FastAPI(
     title="EchoShield API",
     description="Real-Time AI Scammer Interceptor Backend",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if _ENV != "production" else None,
+    redoc_url="/redoc" if _ENV != "production" else None,
 )
 
 # Explicit allowlist in deployment; local Flutter/web development remains supported.
 _origins = [origin.strip() for origin in os.getenv(
     "CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080"
 ).split(",") if origin.strip()]
+if _ENV == "production":
+    if not os.getenv("CORS_ORIGINS", "").strip():
+        raise RuntimeError("CORS_ORIGINS must explicitly list trusted production origins")
+    if "*" in _origins:
+        raise RuntimeError("Wildcard CORS origin is not allowed in production")
+    if os.getenv("ENABLE_MOCK_DB", "false").strip().lower() in {"1", "true", "yes"}:
+        raise RuntimeError("ENABLE_MOCK_DB must be disabled in production")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
@@ -33,12 +42,30 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+@app.middleware("http")
+async def security_response_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "microphone=(self), camera=(), geolocation=()")
+    response.headers.setdefault("Cache-Control", "no-store")
+    if _ENV == "production":
+        # HTTPS must be terminated by the trusted deployment proxy/load balancer.
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
 @app.on_event("startup")
 async def startup_event():
     try:
         await connect_db()
     except Exception as e:
         logger.error("Database initialization failed (exception type: %s)", type(e).__name__)
+        if _ENV == "production":
+            raise RuntimeError("Production database initialization failed") from e
+    if _ENV == "production" and not is_db_connected():
+        # Fail closed: never start production with volatile mock or unavailable persistence.
+        raise RuntimeError("Production requires a connected persistent database")
     logger.info("EchoShield backend started. database_connected=%s", is_db_connected())
 
 @app.on_event("shutdown")
