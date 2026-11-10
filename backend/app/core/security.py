@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 import bcrypt
@@ -6,23 +7,30 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "echoshield-super-secret-key-change-in-production")
+# Never ship a predictable signing key. Production must provide JWT_SECRET_KEY.
+_ENV = os.getenv("ECHOSHIELD_ENV", "development").lower()
+_configured_secret = os.getenv("JWT_SECRET_KEY", "").strip()
+if _ENV == "production" and len(_configured_secret) < 32:
+    raise RuntimeError("JWT_SECRET_KEY must be set to at least 32 characters in production")
+SECRET_KEY = _configured_secret or secrets.token_urlsafe(48)
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))  # 24 hours
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))
 
 security = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
+    if len(password) < 8:
+        raise ValueError("Password must contain at least 8 characters")
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode("utf-8"),
-        hashed_password.encode("utf-8")
-    )
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -34,8 +42,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -46,8 +53,7 @@ def decode_token(token: str) -> dict:
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     from app.core.database import User
-    token = credentials.credentials
-    payload = decode_token(token)
+    payload = decode_token(credentials.credentials)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token payload")
@@ -57,7 +63,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user = await User.get(user_id)
     except Exception:
         user = None
-        
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not getattr(user, "is_active", True):
+        raise HTTPException(status_code=403, detail="User account is disabled")
     return user
