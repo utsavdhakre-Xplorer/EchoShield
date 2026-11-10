@@ -144,11 +144,15 @@ async def detect_scam_tactics(transcript: str) -> Dict[str, Any]:
             ml_prob = ml_result.get("scam_probability", 0.0)
             # Both signals are now calibrated contextual scores
             if pattern_score > 0 and ml_prob > 0:
-                final_score = round(0.5 * ml_prob + 0.5 * pattern_score, 4)
+                # Keep explainable, high-severity tactic matches dominant; ML adds context.
+                final_score = round(0.4 * ml_prob + 0.6 * pattern_score, 4)
             elif pattern_score > 0:
                 final_score = round(pattern_score, 4)
             else:
-                final_score = round(ml_prob, 4)
+                # Suppress low-confidence classifier-only noise in tactic-free text.
+                # A learned model probability alone below 0.30 is not enough evidence
+                # to assign a measurable scam urgency score.
+                final_score = round(ml_prob if ml_prob >= 0.30 else 0.0, 4)
         except Exception as e:
             logger.warning("ML classifier failed, using pattern only: %s", type(e).__name__)
             final_score = round(pattern_score, 4)
