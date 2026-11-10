@@ -142,14 +142,14 @@ def _analyze_contextual_scam_signals(text: str) -> tuple[float, List[str], Dict[
     for cat_name, compiled_patterns in _COMPILED_CATEGORIES.items():
         cat_matches = []
         for pattern in compiled_patterns:
-            matches = pattern.findall(text_clean)
-            if matches:
-                for match in matches:
-                    phrase = match if isinstance(match, str) else " ".join(filter(None, match))
-                    if phrase and phrase not in cat_matches:
-                        cat_matches.append(phrase)
-                        if phrase not in matched_phrases:
-                            matched_phrases.append(phrase)
+            # findall returns capture groups rather than the complete phrase for
+            # grouped regexes; finditer keeps explainable signals intact.
+            for match in pattern.finditer(text_clean):
+                phrase = match.group(0).strip()
+                if phrase and phrase not in cat_matches:
+                    cat_matches.append(phrase)
+                    if phrase not in matched_phrases:
+                        matched_phrases.append(phrase)
         if cat_matches:
             triggered_categories[cat_name] = cat_matches
 
@@ -210,7 +210,9 @@ def _classify_with_model(transcript: str) -> Dict[str, Any]:
     try:
         trained_result = predict_trained_scam(transcript)
 
-        trained_probability = trained_result["scam_probability"]
+        trained_probability = float(trained_result["scam_probability"])
+        if not 0.0 <= trained_probability <= 1.0:
+            raise ValueError("Trained model returned an invalid probability")
 
         # Combine trained ML and contextual rule-based scores
         if contextual_score > 0:
