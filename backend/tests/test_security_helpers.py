@@ -35,6 +35,11 @@ class TestSecurityHelpers(unittest.TestCase):
         with self.assertRaises(ValueError):
             hash_password("short")
 
+    def test_password_over_bcrypt_byte_limit_rejected(self):
+        # Multibyte UTF-8 chars can exceed bcrypt's 72-byte limit below 72 chars.
+        with self.assertRaisesRegex(ValueError, "72 UTF-8 bytes"):
+            hash_password("é" * 37)
+
     def test_malformed_hash_returns_false(self):
         self.assertFalse(verify_password("some-password", "not-a-valid-bcrypt-hash"))
 
