@@ -25,7 +25,11 @@ def _get_model():
     """Lazy load Whisper model with error handling."""
     global _WHISPER_MODEL
     if _WHISPER_MODEL is None and WHISPER_AVAILABLE:
-        model_size = os.getenv("WHISPER_MODEL", "base")
+        model_size = os.getenv("WHISPER_MODEL", "base").strip().lower() or "base"
+        allowed_sizes = {"tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large", "large-v2", "large-v3", "turbo"}
+        if model_size not in allowed_sizes:
+            logger.warning("Unsupported WHISPER_MODEL value; using base")
+            model_size = "base"
         logger.info(f"Loading Whisper model: {model_size}")
         _WHISPER_MODEL = whisper.load_model(model_size)
     return _WHISPER_MODEL
