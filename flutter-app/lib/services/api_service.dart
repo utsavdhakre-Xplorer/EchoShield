@@ -7,7 +7,7 @@ const int _maxTranscriptLength = 10000;
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.216.203.21:8000', // Your PC's IP address
+  defaultValue: 'https://echoshield-api-9lg0.onrender.com', // Your PC's IP address
 );
 
 class ApiService {
