@@ -1,5 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+const Duration _requestTimeout = Duration(seconds: 15);
+const int _maxTranscriptLength = 10000;
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
@@ -17,7 +21,7 @@ class ApiService {
 
   Future<Map<String, dynamic>?> getStats() async {
     try {
-      final res = await http.get(Uri.parse('$_baseUrl/stats'), headers: _headers);
+      final res = await http.get(Uri.parse('$_baseUrl/stats'), headers: _headers).timeout(_requestTimeout);
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return null;
@@ -25,42 +29,45 @@ class ApiService {
 
   Future<List<dynamic>> getCallLogs({int limit = 20}) async {
     try {
+      final safeLimit = limit.clamp(1, 100);
       final res = await http.get(
-        Uri.parse('$_baseUrl/call-logs?limit=$limit'),
+        Uri.parse('$_baseUrl/call-logs?limit=$safeLimit'),
         headers: _headers,
-      );
+      ).timeout(_requestTimeout);
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return [];
   }
 
   Future<Map<String, dynamic>?> analyzeText(String transcript) async {
+    final normalizedTranscript = transcript.trim();
+    if (normalizedTranscript.length < 5 ||
+        normalizedTranscript.length > _maxTranscriptLength) {
+      debugPrint('[API] Transcript rejected: invalid length');
+      return null;
+    }
+
     try {
-      print('[API] Sending analyze request to $_baseUrl/analyze');
-      print('[API] Token: ${token.substring(0, 20)}...');
-      print('[API] Transcript length: ${transcript.length}');
-      
       final res = await http.post(
         Uri.parse('$_baseUrl/analyze'),
         headers: _headers,
-        body: jsonEncode({'transcript': transcript}),
-      );
-      
-      print('[API] Response status: ${res.statusCode}');
-      print('[API] Response body: ${res.body}');
-      
+        body: jsonEncode({'transcript': normalizedTranscript}),
+      ).timeout(const Duration(seconds: 65));
+
       if (res.statusCode == 200) {
-        return jsonDecode(res.body);
-      } else if (res.statusCode == 401) {
-        print('[API] Authentication failed');
-        return null;
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map<String, dynamic>) return decoded;
+        debugPrint('[API] Analyze returned an unexpected response format');
       } else {
-        print('[API] Error: ${res.body}');
-        return null;
+        debugPrint('[API] Analyze request failed with status ${res.statusCode}');
       }
+    } on http.ClientException {
+      debugPrint('[API] Analyze network request failed');
+    } on FormatException {
+      debugPrint('[API] Analyze response was not valid JSON');
     } catch (e) {
-      print('[API] Exception: $e');
-      return null;
+      debugPrint('[API] Analyze request failed: ${e.runtimeType}');
     }
+    return null;
   }
 }
