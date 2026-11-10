@@ -43,6 +43,8 @@ async def stream_audio_chunk(
 ):
     """Receive audio chunk, transcribe, analyze, and return threat result."""
     from app.core.database import CallLog
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
     audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
