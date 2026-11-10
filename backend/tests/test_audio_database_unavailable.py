@@ -8,7 +8,11 @@ from unittest.mock import patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from fastapi import HTTPException
-from app.api.audio import stream_audio_chunk, analyze_uploaded_audio
+from app.api.audio import (
+    stream_audio_chunk,
+    analyze_uploaded_audio,
+    _read_bounded_audio_upload,
+)
 
 
 class TestAudioDatabaseUnavailable(unittest.IsolatedAsyncioTestCase):
@@ -31,8 +35,6 @@ class TestAudioDatabaseUnavailable(unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(raised.exception.status_code, 503)
         self.assertEqual(raised.exception.detail, "Database is unavailable")
-
-
 
 
 class TestBoundedAudioUpload(unittest.IsolatedAsyncioTestCase):
