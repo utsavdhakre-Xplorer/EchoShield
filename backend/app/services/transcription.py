@@ -47,7 +47,10 @@ def _transcribe_sync(audio_path: str) -> str:
         model = _get_model()
         if model is None:
             return ""
-        result = model.transcribe(audio_path, fp16=False, language="en")
+        # Let Whisper detect the spoken language by default (e.g. Hindi, English,
+        # or mixed speech). Set WHISPER_LANGUAGE to force a specific language.
+        language = os.getenv("WHISPER_LANGUAGE", "").strip() or None
+        result = model.transcribe(audio_path, fp16=False, language=language)
         transcript = result.get("text", "").strip()
         logger.info(f"Transcribed {len(transcript)} characters from {audio_path}")
         return transcript if transcript else "[No speech detected]"
