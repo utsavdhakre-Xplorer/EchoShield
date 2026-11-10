@@ -25,10 +25,15 @@ async def signup(user_data: UserCreate):
     if existing_username:
         raise HTTPException(status_code=400, detail="Username already taken")
 
+    try:
+        password_hash = hash_password(user_data.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     user = User(
         email=email,
         username=username,
-        hashed_password=hash_password(user_data.password),
+        hashed_password=password_hash,
         full_name=user_data.full_name,
         family_contact_email=str(user_data.family_contact_email) if user_data.family_contact_email else None,
     )
