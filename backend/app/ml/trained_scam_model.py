@@ -50,9 +50,24 @@ def predict_scam(text: str):
 
     prediction = int(model.predict(features)[0])
     probabilities = model.predict_proba(features)[0]
+    classes = list(getattr(model, "classes_", []))
+
+    # Do not assume the scam label (1) is always at probability index 1.
+    # sklearn orders probabilities according to model.classes_.
+    try:
+        scam_index = classes.index(1)
+    except ValueError as exc:
+        raise ValueError("Trained scam model does not contain class label 1") from exc
+
+    if len(probabilities) != len(classes):
+        raise ValueError("Model probability output does not match its class labels")
+
+    scam_probability = float(probabilities[scam_index])
+    if not 0.0 <= scam_probability <= 1.0:
+        raise ValueError("Model returned an invalid scam probability")
 
     return {
         "prediction": "SCAM" if prediction == 1 else "SAFE",
-        "scam_probability": round(float(probabilities[1]), 4),
+        "scam_probability": round(scam_probability, 4),
         "model_available": True
     }
