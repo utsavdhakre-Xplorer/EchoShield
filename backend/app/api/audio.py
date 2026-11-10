@@ -63,10 +63,12 @@ async def stream_audio_chunk(
         scam_result = await detect_scam_tactics(transcript)
         threat = classify_threat(
             deepfake_confidence=deepfake_result["confidence"],
+            deepfake_verified=deepfake_result.get("model_verified", False),
+            deepfake_status=deepfake_result.get("status", "inconclusive"),
+            deepfake_model_version=deepfake_result.get("model_version", "unversioned"),
             is_deepfake=deepfake_result["is_deepfake"],
             urgency_score=scam_result["urgency_score"],
             urgency_detected=scam_result["urgency_detected"],
-            deepfake_verified=deepfake_result.get("model_verified", False),
             tactics_detected=scam_result.get("tactics_detected"),
         )
         strategy = await generate_negotiator_strategy(transcript, threat["threat_level"])
@@ -107,6 +109,9 @@ async def stream_audio_chunk(
             transcript=transcript,
             is_deepfake=deepfake_result["is_deepfake"],
             deepfake_confidence=deepfake_result["confidence"],
+            deepfake_verified=deepfake_result.get("model_verified", False),
+            deepfake_status=deepfake_result.get("status", "inconclusive"),
+            deepfake_model_version=deepfake_result.get("model_version", "unversioned"),
             urgency_detected=scam_result["urgency_detected"],
             urgency_score=scam_result["urgency_score"],
             urgency_phrases_found=scam_result["phrases_found"],
@@ -149,10 +154,12 @@ async def analyze_uploaded_audio(
         scam_result = await detect_scam_tactics(transcript)
         threat = classify_threat(
             deepfake_confidence=deepfake_result["confidence"],
+            deepfake_verified=deepfake_result.get("model_verified", False),
+            deepfake_status=deepfake_result.get("status", "inconclusive"),
+            deepfake_model_version=deepfake_result.get("model_version", "unversioned"),
             is_deepfake=deepfake_result["is_deepfake"],
             urgency_score=scam_result["urgency_score"],
             urgency_detected=scam_result["urgency_detected"],
-            deepfake_verified=deepfake_result.get("model_verified", False),
             tactics_detected=scam_result.get("tactics_detected"),
         )
         strategy = await generate_negotiator_strategy(transcript, threat["threat_level"])
