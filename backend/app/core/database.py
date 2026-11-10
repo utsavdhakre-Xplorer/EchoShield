@@ -33,7 +33,7 @@ async def connect_db():
         logger.info("Connected to MongoDB.")
     except Exception as e:
         db_connected = False
-        logger.warning(f"Failed to connect to MongoDB: {e}")
+        logger.warning("Failed to connect to MongoDB (exception type: %s)", type(e).__name__)
         client = None
         # Mock storage is opt-in: never silently replace a real database in deployment.
         if os.getenv("ENABLE_MOCK_DB", "false").strip().lower() in {"1", "true", "yes"}:
