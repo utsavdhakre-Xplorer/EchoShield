@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://10.146.234.147:8000', // Your PC's IP address
+  defaultValue: 'http://10.216.203.21:8000', // Your PC's IP address
 );
 
 class ApiService {

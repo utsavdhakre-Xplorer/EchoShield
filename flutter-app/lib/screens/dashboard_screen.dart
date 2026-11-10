@@ -169,7 +169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: monitor.isMonitoring
-                                ? green.withOpacity(0.15)
+                                ? green.withValues(alpha: 0.15)
                                 : Colors.white10,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
@@ -184,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   shape: BoxShape.circle,
                                   color: monitor.isMonitoring ? green : Colors.white38,
                                   boxShadow: monitor.isMonitoring
-                                      ? [BoxShadow(color: green.withOpacity(0.6), blurRadius: 6)]
+                                      ? [BoxShadow(color: green.withValues(alpha: 0.6), blurRadius: 6)]
                                       : null,
                                 ),
                               ),
@@ -242,7 +242,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Divider(color: Colors.white.withOpacity(0.06), height: 1),
+                Divider(color: Colors.white.withValues(alpha: 0.06), height: 1),
 
                 Expanded(
                   child: RefreshIndicator(
@@ -283,10 +283,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? cyan.withOpacity(0.12) : Colors.transparent,
+          color: selected ? cyan.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected ? cyan.withOpacity(0.4) : Colors.transparent),
+              color: selected ? cyan.withValues(alpha: 0.4) : Colors.transparent),
         ),
         child: Text(
           label,
@@ -360,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: const Text('SIMULATE SCAM CALL'),
             style: OutlinedButton.styleFrom(
               foregroundColor: cyan,
-              side: BorderSide(color: cyan.withOpacity(0.4)),
+              side: BorderSide(color: cyan.withValues(alpha: 0.4)),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
           ),
@@ -371,7 +371,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         if (threat != null) ...[
           Text('LATEST ANALYSIS',
               style: TextStyle(
-                  color: Colors.white.withOpacity(0.3),
+                  color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 11,
                   letterSpacing: 2)),
           const SizedBox(height: 8),
@@ -398,9 +398,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .map((p) => Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFF0055).withOpacity(0.15),
+                                color: const Color(0xFFFF0055).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFFF0055).withOpacity(0.3)),
+                                border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.3)),
                               ),
                               child: Text(p,
                                   style: const TextStyle(
@@ -413,9 +413,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: cyan.withOpacity(0.05),
+                    color: cyan.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: cyan.withOpacity(0.2)),
+                    border: Border.all(color: cyan.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,7 +425,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: Text(
                           threat.negotiatorStrategy,
-                          style: TextStyle(color: cyan.withOpacity(0.85), fontSize: 12),
+                          style: TextStyle(color: cyan.withValues(alpha: 0.85), fontSize: 12),
                         ),
                       ),
                     ],
@@ -494,7 +494,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
       padding: const EdgeInsets.all(20),
       children: [
         Text('TEXT ANALYZER',
-            style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11, letterSpacing: 2)),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11, letterSpacing: 2)),
         const SizedBox(height: 12),
         TextField(
           controller: _ctrl,
@@ -539,7 +539,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
       decoration: BoxDecoration(
         color: const Color(0xFF0D1B2A),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.withOpacity(0.4)),
+        border: Border.all(color: c.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,7 +548,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: c.withOpacity(0.15),
+                color: c.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(level,
@@ -563,9 +563,9 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: cyan.withOpacity(0.05),
+                color: cyan.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: cyan.withOpacity(0.2)),
+                border: Border.all(color: cyan.withValues(alpha: 0.2)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -575,7 +575,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
                   Expanded(
                     child: Text(
                       r['negotiator_strategy'],
-                      style: TextStyle(color: cyan.withOpacity(0.85), fontSize: 12),
+                      style: TextStyle(color: cyan.withValues(alpha: 0.85), fontSize: 12),
                     ),
                   ),
                 ],

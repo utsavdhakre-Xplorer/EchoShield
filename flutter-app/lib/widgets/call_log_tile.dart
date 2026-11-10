@@ -45,7 +45,7 @@ class CallLogTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF0D1B2A),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: c.withOpacity(0.25)),
+            border: Border.all(color: c.withValues(alpha: 0.25)),
           ),
           child: Row(
             children: [
@@ -53,7 +53,7 @@ class CallLogTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: c.withOpacity(0.12),
+                  color: c.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(_levelIcon(level), color: c, size: 22),
@@ -67,14 +67,14 @@ class CallLogTile extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: c.withOpacity(0.15),
+                          color: c.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(level,
                             style: TextStyle(color: c, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ),
                       const SizedBox(width: 8),
-                      Text('$score%', style: TextStyle(color: c.withOpacity(0.7), fontSize: 11)),
+                      Text('$score%', style: TextStyle(color: c.withValues(alpha: 0.7), fontSize: 11)),
                       const Spacer(),
                       if (time != null)
                         Text(
@@ -157,9 +157,9 @@ class CallLogTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: c.withOpacity(0.15),
+                    color: c.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: c.withOpacity(0.4)),
+                    border: Border.all(color: c.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     level,
@@ -197,9 +197,9 @@ class CallLogTile extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF6600).withOpacity(0.15),
+                      color: const Color(0xFFFF6600).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFFF6600).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFFFF6600).withValues(alpha: 0.3)),
                     ),
                     child: const Text('🤖 Deepfake Voice Detected',
                         style: TextStyle(color: Color(0xFFFF6600), fontSize: 12)),
@@ -208,9 +208,9 @@ class CallLogTile extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFF0055).withOpacity(0.15),
+                      color: const Color(0xFFFF0055).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFFF0055).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.3)),
                     ),
                     child: const Text('🚨 Urgency Manipulation',
                         style: TextStyle(color: Color(0xFFFF0055), fontSize: 12)),
@@ -219,9 +219,9 @@ class CallLogTile extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF00FF88).withOpacity(0.15),
+                      color: const Color(0xFF00FF88).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFF00FF88).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFF00FF88).withValues(alpha: 0.3)),
                     ),
                     child: const Text('✅ No Threat Signals Detected',
                         style: TextStyle(color: Color(0xFF00FF88), fontSize: 12)),
@@ -255,9 +255,9 @@ class CallLogTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF00F5FF).withOpacity(0.06),
+                color: const Color(0xFF00F5FF).withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF00F5FF).withOpacity(0.2)),
+                border: Border.all(color: const Color(0xFF00F5FF).withValues(alpha: 0.2)),
               ),
               child: Text(
                 strategy,
@@ -293,7 +293,7 @@ class StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0D1B2A),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

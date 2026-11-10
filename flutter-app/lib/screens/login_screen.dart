@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen>
                       shape: BoxShape.circle,
                       border: Border.all(color: cyan, width: 1.5),
                       boxShadow: [
-                        BoxShadow(color: cyan.withOpacity(0.3), blurRadius: 20, spreadRadius: 5),
+                        BoxShadow(color: cyan.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 5),
                       ],
                     ),
                     child: const Icon(Icons.shield_outlined, color: cyan, size: 40),
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen>
                           color: cyan, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 5)),
                   const SizedBox(height: 4),
                   Text('Real-Time AI Scammer Interceptor',
-                      style: TextStyle(color: cyan.withOpacity(0.5), fontSize: 12, letterSpacing: 1)),
+                      style: TextStyle(color: cyan.withValues(alpha: 0.5), fontSize: 12, letterSpacing: 1)),
                   const SizedBox(height: 40),
 
                   // Tab bar
@@ -119,9 +119,9 @@ class _LoginScreenState extends State<LoginScreen>
                     child: TabBar(
                       controller: _tabs,
                       indicator: BoxDecoration(
-                        color: cyan.withOpacity(0.15),
+                        color: cyan.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: cyan.withOpacity(0.5)),
+                        border: Border.all(color: cyan.withValues(alpha: 0.5)),
                       ),
                       labelColor: cyan,
                       unselectedLabelColor: Colors.white38,
@@ -139,9 +139,9 @@ class _LoginScreenState extends State<LoginScreen>
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFF0055).withOpacity(0.1),
+                        color: const Color(0xFFFF0055).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFFF0055).withOpacity(0.5)),
+                        border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.5)),
                       ),
                       child: Text(auth.error!,
                           style: const TextStyle(color: Color(0xFFFF0055), fontSize: 13)),
@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   suffixIcon: IconButton(
                                     icon: Icon(_obscurePass ? Icons.visibility : Icons.visibility_off),
                                     onPressed: () => setState(() => _obscurePass = !_obscurePass),
-                                    color: cyan.withOpacity(0.5),
+                                    color: cyan.withValues(alpha: 0.5),
                                   ),
                                 ),
                                 validator: (v) => v!.isEmpty ? 'Required' : null,
