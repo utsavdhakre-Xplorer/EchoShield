@@ -34,11 +34,16 @@ async def connect_db():
     except Exception as e:
         db_connected = False
         logger.warning(f"Failed to connect to MongoDB: {e}")
-        logger.warning("Running in MOCK MODE - database operations will be simulated.")
         client = None
-        # Use mock models
-        User = MockUser
-        CallLog = MockCallLog
+        # Mock storage is opt-in: never silently replace a real database in deployment.
+        if os.getenv("ENABLE_MOCK_DB", "false").strip().lower() in {"1", "true", "yes"}:
+            logger.warning("Running in explicitly enabled MOCK MODE; data is volatile.")
+            User = MockUser
+            CallLog = MockCallLog
+        else:
+            User = None
+            CallLog = None
+            logger.error("Database unavailable and mock mode disabled; database-backed routes will return service errors.")
 
 
 async def disconnect_db():
