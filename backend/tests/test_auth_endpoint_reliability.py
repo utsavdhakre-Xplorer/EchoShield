@@ -9,10 +9,31 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from fastapi import HTTPException
 from app.api.auth import get_call_history, login
-from app.models.user import UserLogin
+from app.models.user import UserLogin, UserCreate
 
 
 class TestAuthEndpointReliability(unittest.IsolatedAsyncioTestCase):
+    async def test_login_returns_service_unavailable_without_database(self):
+        credentials = UserLogin(email="user@example.com", password="ValidPass123")
+        with patch("app.core.database.User", None):
+            with self.assertRaises(HTTPException) as raised:
+                await login(credentials)
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(raised.exception.detail, "Database unavailable; login is temporarily disabled")
+
+    async def test_signup_returns_service_unavailable_without_database(self):
+        user_data = UserCreate(
+            email="user@example.com",
+            username="sample_user",
+            password="ValidPass123",
+        )
+        from app.api.auth import signup
+        with patch("app.core.database.User", None):
+            with self.assertRaises(HTTPException) as raised:
+                await signup(user_data)
+        self.assertEqual(raised.exception.status_code, 503)
+        self.assertEqual(raised.exception.detail, "Database unavailable; signup is temporarily disabled")
+
     async def test_call_history_returns_service_unavailable_without_database(self):
         user = SimpleNamespace(id="user-123")
         with patch("app.core.database.CallLog", None):
