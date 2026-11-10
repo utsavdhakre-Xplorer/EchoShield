@@ -61,6 +61,12 @@ async def login(credentials: UserLogin):
             detail="Invalid email or password",
         )
 
+    if not getattr(user, "is_active", True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled",
+        )
+
     user.last_login = datetime.utcnow()
     await user.save()
 
@@ -93,6 +99,9 @@ async def get_me(current_user = Depends(get_current_user)):
 async def get_call_history(current_user = Depends(get_current_user)):
     from app.core.database import CallLog
     from app.core.seed_data import ensure_seed_logs
+
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
 
     await ensure_seed_logs(CallLog, str(current_user.id))
     logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(50).to_list()
