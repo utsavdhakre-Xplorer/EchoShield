@@ -5,7 +5,6 @@ from app.services.threat_classifier import classify_threat
 from app.services.negotiator import generate_negotiator_strategy
 from typing import Optional
 import logging
-from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -97,7 +96,7 @@ async def analyze_transcript(
         call_log_id = str(new_log.id)
     except Exception as e:
         logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
-        call_log_id = call_id or str(uuid4())
+        raise HTTPException(status_code=503, detail="Unable to save analysis; database temporarily unavailable") from e
 
     logger.info("Transcript analysis complete; returning response.")
 
@@ -125,12 +124,10 @@ async def get_call_logs(
 ):
     """Get call logs for current user."""
     from app.core.database import CallLog
-    from app.core.seed_data import ensure_seed_logs
     if CallLog is None:
         raise HTTPException(status_code=503, detail="Database is unavailable")
     
     try:
-        await ensure_seed_logs(CallLog, str(current_user.id))
         logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
     except Exception as exc:
         logger.warning("Call logs retrieval failed (exception type: %s)", type(exc).__name__)
@@ -159,8 +156,6 @@ async def get_call_logs(
 async def get_stats(current_user = Depends(get_current_user)):
     """Get user statistics."""
     from app.core.database import CallLog
-    from app.core.seed_data import ensure_seed_logs
-
     # Match /call-logs behavior: fail clearly when persistence is unavailable
     # instead of dereferencing None and returning an internal server error.
     if CallLog is None:

@@ -124,13 +124,10 @@ async def get_me(current_user = Depends(get_current_user)):
 @router.get("/call-history")
 async def get_call_history(current_user = Depends(get_current_user)):
     from app.core.database import CallLog
-    from app.core.seed_data import ensure_seed_logs
-
     if CallLog is None:
         raise HTTPException(status_code=503, detail="Database is unavailable")
 
     try:
-        await ensure_seed_logs(CallLog, str(current_user.id))
         logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(50).to_list()
     except Exception as exc:
         logger.warning("Call history retrieval failed (exception type: %s)", type(exc).__name__)
