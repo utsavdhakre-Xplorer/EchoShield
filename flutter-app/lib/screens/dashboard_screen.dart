@@ -246,9 +246,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     children: [
-                      _navTab('Dashboard', 0),
-                      _navTab('History', 1),
-                      _navTab('Analyzer', 2),
+                      Expanded(child: _navTab('Dashboard', 0)),
+                      const SizedBox(width: 4),
+                      Expanded(child: _navTab('History', 1)),
+                      const SizedBox(width: 4),
+                      Expanded(child: _navTab('Analyzer', 2)),
                     ],
                   ),
                 ),
@@ -291,8 +293,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return GestureDetector(
       onTap: () => setState(() => _navIndex = index),
       child: Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? cyan.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
