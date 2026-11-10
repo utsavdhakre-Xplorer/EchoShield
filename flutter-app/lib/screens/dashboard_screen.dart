@@ -20,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _stats;
   List<dynamic> _logs = [];
   bool _loadingData = false;
+  bool _refreshInProgress = false;
 
   @override
   void initState() {
@@ -35,17 +36,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _loadData() async {
+    if (_refreshInProgress || !mounted) return;
     final auth = context.read<AuthService>();
     if (auth.token == null) return;
+    _refreshInProgress = true;
     setState(() => _loadingData = true);
-    final api = ApiService(token: auth.token!);
-    final stats = await api.getStats();
-    final logs = await api.getCallLogs(limit: 30);
-    setState(() {
-      _stats = stats;
-      _logs = logs;
-      _loadingData = false;
-    });
+    try {
+      final api = ApiService(token: auth.token!);
+      final results = await Future.wait([api.getStats(), api.getCallLogs(limit: 30)]);
+      if (!mounted) return;
+      setState(() {
+        _stats = results[0] as Map<String, dynamic>?;
+        _logs = results[1] as List<dynamic>;
+      });
+    } finally {
+      _refreshInProgress = false;
+      if (mounted) setState(() => _loadingData = false);
+    }
   }
 
   @override
@@ -54,7 +61,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final monitor = context.watch<CallMonitorService>();
     const cyan = Color(0xFF00F5FF);
     const green = Color(0xFF00FF88);
-    const red = Color(0xFFFF0055);
 
     return Scaffold(
       backgroundColor: const Color(0xFF050A14),
@@ -135,7 +141,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           PopupMenuItem(
                             onTap: () {
                               auth.logout().then((_) {
-                                Navigator.pushReplacementNamed(context, '/login');
+                                if (context.mounted) {
+                                  Navigator.pushReplacementNamed(context, '/login');
+                                }
                               });
                             },
                             child: const Text(
@@ -414,6 +422,7 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
     setState(() => _loading = true);
     final api = ApiService(token: auth.token!);
     final r = await api.analyzeText(_ctrl.text.trim());
+    if (!mounted) return;
     setState(() {
       _result = r;
       _loading = false;
@@ -421,8 +430,13 @@ class _TextAnalyzerTabState extends State<_TextAnalyzerTab> {
   }
 
   @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const cyan = Color(0xFF00F5FF);
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [

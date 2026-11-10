@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+const Duration _authTimeout = Duration(seconds: 15);
+
 const String _baseUrl = String.fromEnvironment(
   'API_BASE_URL',
   defaultValue: 'http://10.216.203.21:8000', // Your PC's Wi-Fi IP — change if IP changes
@@ -22,9 +24,9 @@ class AuthUser {
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-        id: json['id'],
-        email: json['email'],
-        username: json['username'],
+        id: json['id']?.toString() ?? '',
+        email: json['email']?.toString() ?? '',
+        username: json['username']?.toString() ?? '',
         fullName: json['full_name'],
       );
 }
@@ -66,7 +68,7 @@ class AuthService extends ChangeNotifier {
         Uri.parse('$_baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
-      );
+      ).timeout(_authTimeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -78,14 +80,14 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        final data = jsonDecode(response.body);
-        _error = data['detail'] ?? 'Login failed';
+        final data = _decodeError(response.body);
+        _error = data ?? 'Login failed';
         _loading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _error = 'Connection error: $e';
+      _error = 'Unable to connect. Please check your network and try again.';
       _loading = false;
       notifyListeners();
       return false;
@@ -112,7 +114,7 @@ class AuthService extends ChangeNotifier {
           'password': password,
           if (fullName != null) 'full_name': fullName,
         }),
-      );
+      ).timeout(_authTimeout);
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -124,8 +126,8 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        final data = jsonDecode(response.body);
-        _error = data['detail'] ?? 'Signup failed';
+        final data = _decodeError(response.body);
+        _error = data ?? 'Signup failed';
         _loading = false;
         notifyListeners();
         return false;
@@ -143,6 +145,17 @@ class AuthService extends ChangeNotifier {
     _user = null;
     await _storage.deleteAll();
     notifyListeners();
+  }
+
+  String? _decodeError(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        final detail = decoded['detail'];
+        if (detail is String && detail.isNotEmpty) return detail;
+      }
+    } catch (_) {}
+    return null;
   }
 
   Map<String, String> get authHeaders => {

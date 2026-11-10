@@ -280,7 +280,7 @@ class CallMonitorService extends ChangeNotifier {
 
   Future<void> _triggerAlert(ThreatResult result) async {
     // Vibrate
-    if (await Vibration.hasVibrator() ?? false) {
+    if (await Vibration.hasVibrator()) {
       final pattern = result.threatLevel == ThreatLevel.critical
           ? [0, 500, 200, 500, 200, 500]
           : [0, 300, 200, 300];

@@ -15,6 +15,7 @@ class WsAudioService {
   final AudioRecorder _recorder = AudioRecorder();
   final _threatController = StreamController<Map<String, dynamic>>.broadcast();
   Timer? _pingTimer;
+  StreamSubscription<Uint8List>? _audioSubscription;
   bool _isStreaming = false;
 
   Stream<Map<String, dynamic>> get threatStream => _threatController.stream;
@@ -35,7 +36,7 @@ class WsAudioService {
     }
 
     final wsUrl = Uri.parse('ws://$host:$port/ws/analyze?token=$token');
-    debugPrint('[WS] Connecting to $wsUrl');
+    debugPrint('[WS] Connecting to audio analysis endpoint');
 
     try {
       _channel = WebSocketChannel.connect(wsUrl);
@@ -48,11 +49,11 @@ class WsAudioService {
             debugPrint('[WS] Received: threat=${data['threat_level']}, score=${data['overall_threat_score']}');
             _threatController.add(data);
           } catch (e) {
-            debugPrint('[WS] Parse error: $e');
+            debugPrint('[WS] Parse error: ${e.runtimeType}');
           }
         },
         onError: (e) {
-          debugPrint('[WS] Stream error: $e');
+          debugPrint('[WS] Stream error: ${e.runtimeType}');
           stopStreaming();
         },
         onDone: () {
@@ -70,16 +71,18 @@ class WsAudioService {
         ),
       );
 
-      stream.listen((data) {
-        if (_isStreaming) {
-          _channel!.sink.add(data);
-        }
+      _audioSubscription = stream.listen((data) {
+        final channel = _channel;
+        if (_isStreaming && channel != null) channel.sink.add(data);
+      }, onError: (e) {
+        debugPrint('[WS] Audio stream error: ${e.runtimeType}');
+        stopStreaming();
       });
 
       _isStreaming = true;
       debugPrint('[WS] Audio streaming started');
     } catch (e) {
-      debugPrint('[WS] Failed to start streaming: $e');
+      debugPrint('[WS] Failed to start streaming: ${e.runtimeType}');
     }
   }
 
@@ -95,6 +98,8 @@ class WsAudioService {
     _isStreaming = false;
     _pingTimer?.cancel();
     _pingTimer = null;
+    await _audioSubscription?.cancel();
+    _audioSubscription = null;
 
     if (await _recorder.isRecording()) {
       await _recorder.stop();
