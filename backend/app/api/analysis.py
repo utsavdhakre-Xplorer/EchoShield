@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from app.core.security import get_current_user
 from app.services.scam_detector import detect_scam_tactics
 from app.services.threat_classifier import classify_threat
@@ -21,9 +21,14 @@ async def analyze_transcript(
     
     transcript = request.get("transcript", "")
     call_id = request.get("call_id")
-    
-    if not transcript or len(transcript) < 5:
+
+    if not isinstance(transcript, str):
+        raise HTTPException(status_code=400, detail="Transcript must be a string")
+    transcript = transcript.strip()
+    if len(transcript) < 5:
         raise HTTPException(status_code=400, detail="Transcript too short")
+    if len(transcript) > 10000:
+        raise HTTPException(status_code=413, detail="Transcript exceeds the 10000-character limit")
     
     logger.info(f"Analyzing transcript: {transcript[:100]}...")
     
@@ -58,7 +63,7 @@ async def analyze_transcript(
     try:
         new_log = CallLog(
             user_id=str(current_user.id),
-            caller_number=request.get("caller_number", "+1 (555) 019-8834"),
+            caller_number=request.get("caller_number"),
             transcript=transcript,
             threat_level=threat["threat_level"],
             deepfake_confidence=0.0,
@@ -97,7 +102,7 @@ async def analyze_transcript(
 
 @router.get("/call-logs")
 async def get_call_logs(
-    limit: int = 20,
+    limit: int = Query(default=20, ge=1, le=100),
     current_user = Depends(get_current_user),
 ):
     """Get call logs for current user."""
