@@ -110,7 +110,8 @@ async def _process_audio_buffer(pcm_bytes: bytes, chunk_idx: int) -> dict:
             "alert_required": threat["alert_required"],
         }
     except Exception as e:
-        logger.error(f"[WS] Processing error on chunk {chunk_idx}: {e}")
+        # Avoid logging raw exception text; it may contain user data or local paths.
+        logger.error("[WS] Audio chunk processing failed (exception type: %s)", type(e).__name__)
         return {
             "chunk_index": chunk_idx,
             "error": "Audio processing failed. Please try again.",
@@ -155,7 +156,7 @@ async def ws_analyze(
         return
 
     await websocket.accept()
-    logger.info(f"[WS] Client connected: user={user_id}")
+    logger.info("[WS] Authenticated client connected")
 
     audio_buffer = bytearray()
     chunk_idx = 0
@@ -184,8 +185,10 @@ async def ws_analyze(
 
                 await websocket.send_text(json.dumps(result))
                 logger.info(
-                    f"[WS] Chunk {chunk_idx} → threat={result.get('threat_level')} "
-                    f"score={result.get('overall_threat_score', 0):.3f}"
+                    "[WS] Chunk %s completed: threat=%s score=%.3f",
+                    chunk_idx,
+                    result.get("threat_level"),
+                    result.get("overall_threat_score", 0),
                 )
 
         # Process any residual audio on graceful loop termination
@@ -196,8 +199,9 @@ async def ws_analyze(
             await websocket.send_text(json.dumps(final_result))
 
     except WebSocketDisconnect:
-        logger.info(f"[WS] Client disconnected: user={user_id}")
+        logger.info("[WS] Client disconnected")
     except Exception as e:
-        logger.error(f"[WS] Unexpected error: {e}")
+        # Keep exception details out of logs to avoid accidental data/path leakage.
+        logger.error("[WS] Unexpected session error (exception type: %s)", type(e).__name__)
     finally:
-        logger.info(f"[WS] Session ended for user={user_id}, processed {chunk_idx} chunks")
+        logger.info("[WS] Session ended; processed %s chunks", chunk_idx)
