@@ -13,6 +13,22 @@ from app.services.negotiator import generate_negotiator_strategy
 from app.ml.audio_features import extract_audio_features
 import logging
 
+MAX_AUDIO_UPLOAD_BYTES = 15 * 1024 * 1024  # 15 MiB
+UPLOAD_READ_CHUNK_BYTES = 1024 * 1024
+
+async def _read_bounded_audio_upload(upload: UploadFile) -> bytes:
+    chunks = []
+    total = 0
+    while True:
+        chunk = await upload.read(UPLOAD_READ_CHUNK_BYTES)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > MAX_AUDIO_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="Audio upload exceeds the 15 MiB limit")
+        chunks.append(chunk)
+    return b"".join(chunks)
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -27,7 +43,7 @@ async def stream_audio_chunk(
 ):
     """Receive audio chunk, transcribe, analyze, and return threat result."""
     from app.core.database import CallLog
-    audio_bytes = await audio.read()
+    audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
     if not audio_bytes or len(audio_bytes) < 44:
