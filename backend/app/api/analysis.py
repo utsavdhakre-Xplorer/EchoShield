@@ -144,7 +144,12 @@ async def get_stats(current_user = Depends(get_current_user)):
     """Get user statistics."""
     from app.core.database import CallLog
     from app.core.seed_data import ensure_seed_logs
-    
+
+    # Match /call-logs behavior: fail clearly when persistence is unavailable
+    # instead of dereferencing None and returning an internal server error.
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
+
     await ensure_seed_logs(CallLog, str(current_user.id))
     all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
     total_calls = len(all_logs)
