@@ -196,6 +196,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const SizedBox(width: 6),
                                 Text(
                                   monitor.isMonitoring ? 'APP MONITOR ON' : 'APP MONITOR OFF',
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     color: monitor.isMonitoring ? green : Colors.white38,
                                     fontSize: 10,
