@@ -80,6 +80,21 @@ echoshield/
 
 ---
 
+## 🪟 Windows Backend Setup (Python 3.11)
+
+From the repository root, run PowerShell:
+
+```powershell
+cd backend
+.\setup.ps1
+# Edit backend/.env with your MongoDB URI and a strong JWT secret.
+.\setup.ps1 -SkipInstall -RunServer
+```
+
+The helper creates a local `.venv`, installs the dependencies from `backend/requirements.txt`, and creates `.env` from `.env.example` only when it is missing. It does not overwrite an existing `.env`. Keep real credentials out of Git. Use Python 3.11 for reproducible backend setup; the repository's `.python-version` records this target.
+
+For a clean install, remove `backend/.venv` and recreate it with the setup script. After startup, verify `http://localhost:8000/health`, `http://localhost:8000/ready` (requires DB connectivity), and `http://localhost:8000/openapi.json`.
+
 ## 🔧 Backend Setup
 
 ### 1. Install dependencies

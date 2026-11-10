@@ -43,6 +43,8 @@ async def stream_audio_chunk(
 ):
     """Receive audio chunk, transcribe, analyze, and return threat result."""
     from app.core.database import CallLog
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
     audio_bytes = await _read_bounded_audio_upload(audio)
 
     # Validate input: audio cannot be empty or trivially small
@@ -55,19 +57,10 @@ async def stream_audio_chunk(
         tmp_path = tmp.name
 
     try:
-        # Transcription
         transcript = await transcribe_audio(tmp_path)
-
-        # Deepfake detection
         deepfake_result = await detect_deepfake(tmp_path, audio_bytes)
-
-        # Audio acoustic feature extraction
         audio_features = extract_audio_features(tmp_path)
-
-        # Scam tactic detection
         scam_result = await detect_scam_tactics(transcript)
-
-        # Threat classification
         threat = classify_threat(
             deepfake_confidence=deepfake_result["confidence"],
             is_deepfake=deepfake_result["is_deepfake"],
@@ -76,28 +69,20 @@ async def stream_audio_chunk(
             deepfake_verified=deepfake_result.get("model_verified", False),
             tactics_detected=scam_result.get("tactics_detected"),
         )
-
-        # Negotiator strategy
         strategy = await generate_negotiator_strategy(transcript, threat["threat_level"])
 
-        # Upsert call log
         if call_id:
             try:
                 log = await CallLog.get(call_id)
             except (ValueError, TypeError):
                 log = None
-
-            # A call ID is not an authorization token: only its owner may append chunks.
             if log and str(log.user_id) != str(current_user.id):
                 raise HTTPException(status_code=403, detail="You do not own this call log")
         else:
             log = None
 
         if not log:
-            log = CallLog(
-                user_id=str(current_user.id),
-                caller_number=caller_number,
-            )
+            log = CallLog(user_id=str(current_user.id), caller_number=caller_number)
 
         log.transcript = ((log.transcript or "") + " " + transcript).strip()
         log.deepfake_confidence = deepfake_result["confidence"]
@@ -108,13 +93,13 @@ async def stream_audio_chunk(
         log.overall_threat_score = threat["overall_score"]
         log.threat_level = threat["threat_level"]
         log.negotiator_strategy = strategy
-        log.audio_chunks_received = getattr(log, 'audio_chunks_received', 0) + 1
+        log.audio_chunks_received = getattr(log, "audio_chunks_received", 0) + 1
         log.alert_sent = threat["alert_required"]
 
         try:
             await log.save()
         except Exception as e:
-            logger.warning(f"Failed to save call log: {e}")
+            logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
 
         return ThreatResult(
             call_log_id=str(log.id),
@@ -145,9 +130,10 @@ async def analyze_uploaded_audio(
 ):
     """Analyze a complete uploaded audio recording."""
     from app.core.database import CallLog
-    audio_bytes = await _read_bounded_audio_upload(audio)
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
 
-    # Validate input: audio cannot be empty or trivially small
+    audio_bytes = await _read_bounded_audio_upload(audio)
     if not audio_bytes or len(audio_bytes) < 44:
         raise HTTPException(status_code=400, detail="Empty or invalid audio data received")
 
@@ -188,7 +174,7 @@ async def analyze_uploaded_audio(
         try:
             await log.insert()
         except Exception as e:
-            logger.warning(f"Failed to insert call log: {e}")
+            logger.warning("Failed to insert call log (exception type: %s)", type(e).__name__)
 
         return ThreatResult(
             call_log_id=str(log.id),

@@ -11,14 +11,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/analyze", response_model=dict)
-async def analyze_transcript(
-    request: dict = Body(...),
-    current_user = Depends(get_current_user),
-):
-    """Analyze a transcript string directly and return threat assessment."""
-    import asyncio
-    
+def validate_transcript_request(request: dict):
+    """Validate and normalize user-provided transcript analysis fields."""
     transcript = request.get("transcript", "")
     call_id = request.get("call_id")
     caller_number = request.get("caller_number")
@@ -27,7 +21,6 @@ async def analyze_transcript(
         raise HTTPException(status_code=400, detail="Caller number must be a string of at most 32 characters")
     if call_id is not None and (not isinstance(call_id, str) or len(call_id) > 100):
         raise HTTPException(status_code=400, detail="Call ID must be a string of at most 100 characters")
-
     if not isinstance(transcript, str):
         raise HTTPException(status_code=400, detail="Transcript must be a string")
     transcript = transcript.strip()
@@ -35,15 +28,30 @@ async def analyze_transcript(
         raise HTTPException(status_code=400, detail="Transcript too short")
     if len(transcript) > 10000:
         raise HTTPException(status_code=413, detail="Transcript exceeds the 10000-character limit")
+    return transcript, call_id, caller_number
+
+
+@router.post("/analyze", response_model=dict)
+async def analyze_transcript(
+    request: dict = Body(...),
+    current_user = Depends(get_current_user),
+):
+    """Analyze a transcript string directly and return threat assessment."""
+    import asyncio
     
-    logger.info(f"Analyzing transcript: {transcript[:100]}...")
+    transcript, call_id, caller_number = validate_transcript_request(request)
+    
+    logger.info("Analyzing transcript payload (characters=%d)", len(transcript))
     
     # Run analysis tasks concurrently
     scam_task = detect_scam_tactics(transcript)
-    strategy_task = None  # Will create after threat classification
     
-    scam_result = await asyncio.wait_for(scam_task, timeout=65.0)
-    logger.info(f"Scam detection complete: {scam_result['urgency_score']}")
+    try:
+        scam_result = await asyncio.wait_for(scam_task, timeout=65.0)
+    except asyncio.TimeoutError:
+        logger.error("Transcript scam detection timed out")
+        raise HTTPException(status_code=504, detail="Scam detection timed out; please retry")
+    logger.info("Scam detection complete: urgency_score=%s", scam_result["urgency_score"])
     
     threat = classify_threat(
         deepfake_confidence=0.0,
@@ -53,13 +61,17 @@ async def analyze_transcript(
         deepfake_verified=False,
         tactics_detected=scam_result.get("tactics_detected"),
     )
-    logger.info(f"Threat classification: {threat['threat_level']}")
+    logger.info("Threat classification complete: threat_level=%s", threat["threat_level"])
     
-    strategy = await asyncio.wait_for(
-        generate_negotiator_strategy(transcript, threat["threat_level"]),
-        timeout=15.0
-    )
-    logger.info(f"Negotiator strategy generated")
+    try:
+        strategy = await asyncio.wait_for(
+            generate_negotiator_strategy(transcript, threat["threat_level"]),
+            timeout=15.0
+        )
+    except asyncio.TimeoutError:
+        logger.error("Negotiator strategy generation timed out")
+        raise HTTPException(status_code=504, detail="Strategy generation timed out; please retry")
+    logger.info("Negotiator strategy generated")
 
     # Serialize threat_level enum to string
     threat_level_str = threat["threat_level"].value if hasattr(threat["threat_level"], 'value') else str(threat["threat_level"])
@@ -84,10 +96,10 @@ async def analyze_transcript(
         await new_log.insert()
         call_log_id = str(new_log.id)
     except Exception as e:
-        logger.warning(f"Failed to save call log: {e}")
+        logger.warning("Failed to save call log (exception type: %s)", type(e).__name__)
         call_log_id = call_id or str(uuid4())
 
-    logger.info(f"Analysis complete. Returning response.")
+    logger.info("Transcript analysis complete; returning response.")
 
     return {
         "call_log_id": call_log_id,
@@ -117,8 +129,12 @@ async def get_call_logs(
     if CallLog is None:
         raise HTTPException(status_code=503, detail="Database is unavailable")
     
-    await ensure_seed_logs(CallLog, str(current_user.id))
-    logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
+    try:
+        await ensure_seed_logs(CallLog, str(current_user.id))
+        logs = await CallLog.find({"user_id": str(current_user.id)}).sort([("call_start", -1)]).limit(limit).to_list()
+    except Exception as exc:
+        logger.warning("Call logs retrieval failed (exception type: %s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Call logs are temporarily unavailable") from exc
     return [
         {
             "id": str(log.id),
@@ -144,9 +160,18 @@ async def get_stats(current_user = Depends(get_current_user)):
     """Get user statistics."""
     from app.core.database import CallLog
     from app.core.seed_data import ensure_seed_logs
-    
-    await ensure_seed_logs(CallLog, str(current_user.id))
-    all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
+
+    # Match /call-logs behavior: fail clearly when persistence is unavailable
+    # instead of dereferencing None and returning an internal server error.
+    if CallLog is None:
+        raise HTTPException(status_code=503, detail="Database is unavailable")
+
+    try:
+        await ensure_seed_logs(CallLog, str(current_user.id))
+        all_logs = await CallLog.find({"user_id": str(current_user.id)}).to_list()
+    except Exception as exc:
+        logger.warning("Statistics retrieval failed (exception type: %s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Statistics are temporarily unavailable") from exc
     total_calls = len(all_logs)
     # threat_level may be a ThreatLevel enum or a plain string — normalise to str
     scam_calls = sum(1 for l in all_logs if str(getattr(l.threat_level, 'value', l.threat_level)) in ["HIGH", "CRITICAL"])

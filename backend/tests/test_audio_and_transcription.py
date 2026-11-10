@@ -56,6 +56,41 @@ class TestAudioAndTranscription(unittest.TestCase):
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+
+    def test_bounded_upload_accepts_small_audio_payload(self):
+        """Bounded upload reader returns bytes unchanged for payloads below the limit."""
+        from app.api.audio import _read_bounded_audio_upload
+
+        class FakeUpload:
+            def __init__(self):
+                self.parts = [b"RIFF" + b"x" * 80, b""]
+
+            async def read(self, size):
+                return self.parts.pop(0)
+
+        result = asyncio.run(_read_bounded_audio_upload(FakeUpload()))
+        self.assertEqual(result, b"RIFF" + b"x" * 80)
+
+    def test_bounded_upload_rejects_payload_over_limit(self):
+        """The upload reader must stop and raise HTTP 413 once the byte cap is crossed."""
+        from fastapi import HTTPException
+        from app.api.audio import _read_bounded_audio_upload, MAX_AUDIO_UPLOAD_BYTES
+
+        class FakeUpload:
+            def __init__(self):
+                self.remaining = MAX_AUDIO_UPLOAD_BYTES + 1
+
+            async def read(self, size):
+                if self.remaining <= 0:
+                    return b""
+                amount = min(size, self.remaining)
+                self.remaining -= amount
+                return b"x" * amount
+
+        with self.assertRaises(HTTPException) as raised:
+            asyncio.run(_read_bounded_audio_upload(FakeUpload()))
+        self.assertEqual(raised.exception.status_code, 413)
+
     def test_mock_call_log_save_upsert_and_transcript_accumulation(self):
         """MockCallLog.save() must correctly insert new records and update transcripts across chunks."""
         async def run_db_test():

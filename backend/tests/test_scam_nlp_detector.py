@@ -3,6 +3,7 @@ import unittest
 import os
 import sys
 import asyncio
+from unittest.mock import patch, AsyncMock
 
 # Ensure backend is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -86,6 +87,30 @@ class TestScamAndNLPDetector(unittest.TestCase):
             nlp_res = asyncio.run(classify_scam(empty_text))
             self.assertEqual(nlp_res["scam_probability"], 0.0)
             self.assertEqual(nlp_res["label"], "SAFE")
+
+
+    def test_classifier_only_low_confidence_noise_is_suppressed(self):
+        """Low ML-only scores without tactic matches should not become urgency."""
+        with patch("app.services.scam_detector._ML_AVAILABLE", True), \
+             patch("app.services.scam_detector._ml_classify", new=AsyncMock(return_value={"scam_probability": 0.2297})):
+            result = asyncio.run(detect_scam_tactics(
+                "Hello, I am calling to confirm our lunch reservation tomorrow."
+            ))
+        self.assertFalse(result["urgency_detected"])
+        self.assertEqual(result["urgency_score"], 0.0)
+
+    def test_explicit_remote_access_tactics_remain_high_risk(self):
+        """Explicit tech-support and remote-access matches must dominate ML blending."""
+        text = (
+            "This is Microsoft technical support. A critical virus has been detected "
+            "on your computer. Please download anydesk immediately and give me remote access."
+        )
+        with patch("app.services.scam_detector._ML_AVAILABLE", True), \
+             patch("app.services.scam_detector._ml_classify", new=AsyncMock(return_value={"scam_probability": 0.668})):
+            result = asyncio.run(detect_scam_tactics(text))
+        self.assertTrue(result["urgency_detected"])
+        self.assertGreaterEqual(result["urgency_score"], 0.85)
+        self.assertIn("Remote Access Takeover", result["tactics_detected"])
 
 
 if __name__ == "__main__":

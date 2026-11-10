@@ -30,7 +30,7 @@ def _get_model():
         if model_size not in allowed_sizes:
             logger.warning("Unsupported WHISPER_MODEL value; using base")
             model_size = "base"
-        logger.info(f"Loading Whisper model: {model_size}")
+        logger.info("Loading Whisper model: %s", model_size)
         _WHISPER_MODEL = whisper.load_model(model_size)
     return _WHISPER_MODEL
 
@@ -38,7 +38,7 @@ def _get_model():
 def _transcribe_sync(audio_path: str) -> str:
     """Synchronous transcription using Whisper."""
     if not os.path.exists(audio_path) or os.path.getsize(audio_path) < 100:
-        logger.warning(f"Audio file {audio_path} is missing or too small to transcribe.")
+        logger.warning("Audio file is missing or too small to transcribe.")
         return ""
 
     if not WHISPER_AVAILABLE:
@@ -56,10 +56,10 @@ def _transcribe_sync(audio_path: str) -> str:
         language = os.getenv("WHISPER_LANGUAGE", "").strip() or None
         result = model.transcribe(audio_path, fp16=False, language=language)
         transcript = result.get("text", "").strip()
-        logger.info(f"Transcribed {len(transcript)} characters from {audio_path}")
+        logger.info("Transcribed %s characters", len(transcript))
         return transcript if transcript else "[No speech detected]"
     except Exception as e:
-        logger.error(f"Whisper transcription error: {e}")
+        logger.error("Whisper transcription failed (exception type: %s)", type(e).__name__)
         return ""
 
 
@@ -76,10 +76,10 @@ async def transcribe_audio(audio_path: str) -> str:
         )
         return transcript
     except asyncio.TimeoutError:
-        logger.error(f"Transcription timeout on {audio_path}")
+        logger.error("Transcription timed out")
         return ""
     except Exception as e:
-        logger.error(f"Transcription error: {e}")
+        logger.error("Transcription failed (exception type: %s)", type(e).__name__)
         return ""
 
 

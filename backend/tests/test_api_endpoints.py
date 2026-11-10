@@ -83,30 +83,19 @@ class TestAPIEndpoints(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Empty or invalid audio data", response.json()["detail"])
 
-    def test_get_call_logs_shows_past_history(self):
-        """GET /call-logs should return seeded past calls history for user."""
+    def test_get_call_logs_returns_empty_for_new_user(self):
+        """GET /call-logs must not fabricate sample history for a new user."""
         headers = self._get_auth_headers()
         response = self.client.get("/call-logs", headers=headers)
         self.assertEqual(response.status_code, 200)
-        logs = response.json()
-        self.assertIsInstance(logs, list)
-        self.assertGreaterEqual(len(logs), 1)
-        # Verify first log has expected fields
-        first = logs[0]
-        self.assertIn("caller_number", first)
-        self.assertIn("threat_level", first)
-        self.assertIn("transcript", first)
-        self.assertIn("negotiator_strategy", first)
-        self.assertIn("overall_threat_score", first)
+        self.assertEqual(response.json(), [])
 
-    def test_get_auth_call_history_shows_past_history(self):
-        """GET /auth/call-history should return past calls history for user."""
+    def test_get_auth_call_history_returns_empty_for_new_user(self):
+        """GET /auth/call-history must not fabricate sample history for a new user."""
         headers = self._get_auth_headers()
         response = self.client.get("/auth/call-history", headers=headers)
         self.assertEqual(response.status_code, 200)
-        logs = response.json()
-        self.assertIsInstance(logs, list)
-        self.assertGreaterEqual(len(logs), 1)
+        self.assertEqual(response.json(), [])
 
     def test_analyze_persists_to_call_history(self):
         """POST /analyze should add the new analyzed call to history."""
