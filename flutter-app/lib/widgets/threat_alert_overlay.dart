@@ -126,16 +126,39 @@ class _ThreatAlertOverlayState extends State<ThreatAlertOverlay>
                       if (widget.result.urgencyDetected)
                         _badge('🚨 SCAM TACTICS DETECTED', const Color(0xFFFF0055)),
                       const SizedBox(height: 12),
-                      Text('AI NEGOTIATOR STRATEGY',
+                      Text('EVIDENCE & SAFE NEXT STEPS',
                           style: TextStyle(
-                              color: const Color(0xFF00F5FF).withValues(alpha: 0.5),
+                              color: const Color(0xFF00F5FF).withValues(alpha: 0.7),
                               fontSize: 10,
-                              letterSpacing: 2)),
-                      const SizedBox(height: 6),
+                              letterSpacing: 1.5)),
+                      const SizedBox(height: 8),
                       Text(
-                        widget.result.negotiatorStrategy,
-                        style: const TextStyle(
-                            color: Color(0xFF00F5FF), fontSize: 13, height: 1.5),
+                        widget.result.transcript.isEmpty
+                            ? 'Transcript evidence is unavailable for this result.'
+                            : 'Transcript evidence: "${widget.result.transcript}"',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12, height: 1.45),
+                      ),
+                      if (widget.result.urgencyPhrasesFound.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        const Text('Signals flagged:', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: widget.result.urgencyPhrasesFound.map((phrase) => Chip(
+                            label: Text(phrase, style: const TextStyle(fontSize: 10)),
+                            backgroundColor: const Color(0xFFFF0055).withValues(alpha: 0.12),
+                            side: const BorderSide(color: Color(0x66FF0055)),
+                          )).toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      const Text(
+                        '• Do not transfer money or share OTPs, PINs, passwords, or remote-access codes.\n'
+                        '• End the call if you feel pressured.\n'
+                        '• Verify the claim with the organization using a contact you find independently.\n'
+                        '• This score is an AI estimate, not proof; legitimate callers can be flagged and scams can be missed. EchoShield does not autonomously engage or block the caller.',
+                        style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.5),
                       ),
                     ],
                   ),

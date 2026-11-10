@@ -35,6 +35,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     await _loadData();
   }
 
+  Future<void> _enableMonitoringWithDisclosure(CallMonitorService monitor) async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0D1B2A),
+        title: const Text('Audio analysis & consent', style: TextStyle(color: Color(0xFF00F5FF))),
+        content: const SingleChildScrollView(
+          child: Text(
+            'When app monitoring is enabled and a call event is detected, EchoShield may start a microphone audio-analysis session. Captured audio chunks are uploaded to the configured EchoShield backend for transcription and scam-risk analysis.\n\n'
+            '• Microphone and phone permissions are needed for this app-level flow.\n'
+            '• Audio analysis is not guaranteed to capture cellular call audio or both sides of a call.\n'
+            '• This toggle does not guarantee system-wide call protection or automatic call blocking.\n'
+            '• Threat alerts show risk signals; results can be wrong.\n'
+            '• Do not share OTPs, passwords, or transfer money based on a caller’s demand. Verify using an independently sourced official contact.\n\n'
+            'You can stop an active audio-analysis session from the visible STOP control.',
+            style: TextStyle(color: Colors.white70, height: 1.45),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('I UNDERSTAND — ENABLE'),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true && mounted) {
+      await monitor.startMonitoring();
+    }
+  }
+
   Future<void> _loadData() async {
     if (_refreshInProgress || !mounted) return;
     final auth = context.read<AuthService>();
@@ -83,11 +119,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const Spacer(),
                       // Monitoring toggle
                       GestureDetector(
-                        onTap: () {
+                        onTap: () async {
                           if (monitor.isMonitoring) {
-                            monitor.stopMonitoring();
+                            await monitor.stopMonitoring();
                           } else {
-                            monitor.startMonitoring();
+                            await _enableMonitoringWithDisclosure(monitor);
                           }
                         },
                         child: Container(
@@ -115,7 +151,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                monitor.isMonitoring ? 'ACTIVE' : 'OFF',
+                                monitor.isMonitoring ? 'APP MONITOR ON' : 'APP MONITOR OFF',
                                 style: TextStyle(
                                     color: monitor.isMonitoring ? green : Colors.white38,
                                     fontSize: 11,
@@ -156,6 +192,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
+
+                if (monitor.isRecording)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF0055).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFF0055).withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.mic, color: Color(0xFFFF0055), size: 20),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'AUDIO ANALYSIS SESSION ACTIVE — microphone audio is being sent for analysis.',
+                              style: TextStyle(color: Color(0xFFFF6688), fontSize: 11, height: 1.4),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async => monitor.stopMonitoring(),
+                            child: const Text('STOP', style: TextStyle(color: Color(0xFFFF0055), fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 // Nav tabs
                 Padding(
@@ -250,6 +315,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(color: Color(0xFFFFAA00), fontSize: 12),
             ),
           ),
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D1B2A),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF1A2E4A)),
+          ),
+          child: const Text(
+            'EchoShield provides an AI risk assessment, not a guarantee. A high score is not proof of fraud and a low score does not mean a caller is safe. Protection depends on app permissions, supported Android behavior, and the analysis session being active.',
+            style: TextStyle(color: Colors.white54, fontSize: 11, height: 1.45),
+          ),
+        ),
         // Threat gauge
         ThreatGauge(score: score, threatLevel: threat?.threatLevel.name.toUpperCase() ?? 'IDLE'),
         const SizedBox(height: 20),
