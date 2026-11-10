@@ -1,4 +1,5 @@
 import os
+import math
 import logging
 from typing import Dict, Any, Optional
 import asyncio
@@ -178,7 +179,19 @@ def _deepfake_detection_sync(audio_path: str, audio_bytes: bytes) -> Dict[str, A
         with torch.no_grad():
             raw_confidence = float(model(tensor).item())
 
-        threshold = float(os.getenv("DEEPFAKE_THRESHOLD", "0.6"))
+        # Reject corrupt model outputs rather than producing misleading confidence.
+        if not math.isfinite(raw_confidence) or not 0.0 <= raw_confidence <= 1.0:
+            raise ValueError("Deepfake model returned an invalid confidence score")
+
+        threshold_raw = os.getenv("DEEPFAKE_THRESHOLD", "0.6")
+        try:
+            threshold = float(threshold_raw)
+        except (TypeError, ValueError):
+            threshold = 0.6
+        if not math.isfinite(threshold) or not 0.0 <= threshold <= 1.0:
+            logger.warning("Invalid DEEPFAKE_THRESHOLD; using default 0.6")
+            threshold = 0.6
+
         is_deepfake = raw_confidence >= threshold
         logger.info(f"Verified deepfake score: {raw_confidence:.4f}, threshold: {threshold}, is_deepfake: {is_deepfake}")
 
