@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:phone_state/phone_state.dart';
 
 import 'services/auth_service.dart';
 import 'services/call_monitor_service.dart';
@@ -10,8 +10,6 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
 
-// MethodChannel matching MainActivity.kt
-const _phoneChannel = MethodChannel('com.echoshield/phone');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,17 +30,13 @@ void main() async {
 
   final callMonitor = CallMonitorService();
 
-  // Listen for native phone call events from Android
-  _phoneChannel.setMethodCallHandler((call) async {
-    final args = call.arguments as Map? ?? {};
-    final number = args['number'] as String? ?? '';
-    switch (call.method) {
-      case 'callStarted':
-        await callMonitor.onCallStarted(callerNumber: number);
-        break;
-      case 'callEnded':
-        await callMonitor.onCallEnded();
-        break;
+  // Listen to Android system telephony state through phone_state.
+  // This reports call state only; it does not provide cellular call audio.
+  PhoneState.stream.listen((event) async {
+    if (event.status == PhoneStateStatus.CALL_STARTED) {
+      await callMonitor.onCallStarted(callerNumber: event.number);
+    } else if (event.status == PhoneStateStatus.CALL_ENDED) {
+      await callMonitor.onCallEnded();
     }
   });
 
