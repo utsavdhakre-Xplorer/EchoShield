@@ -107,12 +107,17 @@ async def detect_scam_tactics(transcript: str) -> Dict[str, Any]:
     category_max_weights: Dict[str, float] = {}
 
     for compiled_pattern, weight, category, _ in COMPILED_PATTERNS:
-        matches = compiled_pattern.findall(normalized)
-        if matches:
-            for match in matches:
-                phrase = match if isinstance(match, str) else " ".join(filter(None, match))
-                if phrase and phrase not in phrases_found:
-                    phrases_found.append(phrase)
+        # findall() returns only capture groups for patterns with groups.
+        # finditer() preserves the complete matched phrase for explainability.
+        matches = compiled_pattern.finditer(normalized)
+        matched_any = False
+        for match in matches:
+            matched_any = True
+            phrase = match.group(0).strip()
+            if phrase and phrase not in phrases_found:
+                phrases_found.append(phrase)
+
+        if matched_any:
             if category not in tactics_detected:
                 tactics_detected.append(category)
             category_max_weights[category] = max(category_max_weights.get(category, 0.0), weight)
@@ -145,7 +150,7 @@ async def detect_scam_tactics(transcript: str) -> Dict[str, Any]:
             else:
                 final_score = round(ml_prob, 4)
         except Exception as e:
-            logger.warning(f"ML classifier failed, using pattern only: {e}")
+            logger.warning("ML classifier failed, using pattern only: %s", type(e).__name__)
             final_score = round(pattern_score, 4)
     else:
         final_score = round(pattern_score, 4)
@@ -154,8 +159,8 @@ async def detect_scam_tactics(transcript: str) -> Dict[str, Any]:
     urgency_detected = final_score >= 0.40
 
     logger.info(
-        f"Scam detection: pattern={pattern_score:.3f}, ml={ml_prob:.3f}, "
-        f"final={final_score:.3f}, detected={urgency_detected}, tactics={tactics_detected}"
+        "Scam detection: pattern=%.3f, ml=%.3f, final=%.3f, detected=%s, tactics=%s",
+        pattern_score, ml_prob, final_score, urgency_detected, tactics_detected,
     )
 
     return {
