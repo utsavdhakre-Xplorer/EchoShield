@@ -3,29 +3,32 @@ from datetime import datetime
 from app.core.security import hash_password, verify_password, create_access_token, get_current_user
 from fastapi import Depends
 from uuid import uuid4
+from app.models.user import UserCreate, UserLogin
 
 router = APIRouter()
 
 
 @router.post("/signup", response_model=dict, status_code=201)
-async def signup(user_data: dict):
+async def signup(user_data: UserCreate):
     from app.core.database import User
     
     # Check existing email
-    existing = await User.find_one({"email": user_data.get("email")})
+    email = str(user_data.email).lower()
+    username = user_data.username.strip()
+    existing = await User.find_one({"email": email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    existing_username = await User.find_one({"username": user_data.get("username")})
+    existing_username = await User.find_one({"username": username})
     if existing_username:
         raise HTTPException(status_code=400, detail="Username already taken")
 
     user = User(
-        email=user_data.get("email"),
-        username=user_data.get("username"),
-        hashed_password=hash_password(user_data.get("password")),
-        full_name=user_data.get("full_name"),
-        family_contact_email=user_data.get("family_contact_email"),
+        email=email,
+        username=username,
+        hashed_password=hash_password(user_data.password),
+        full_name=user_data.full_name,
+        family_contact_email=str(user_data.family_contact_email) if user_data.family_contact_email else None,
     )
     await user.insert()
 
@@ -44,11 +47,11 @@ async def signup(user_data: dict):
 
 
 @router.post("/login", response_model=dict)
-async def login(credentials: dict):
+async def login(credentials: UserLogin):
     from app.core.database import User
     
-    user = await User.find_one({"email": credentials.get("email")})
-    if not user or not verify_password(credentials.get("password"), user.hashed_password):
+    user = await User.find_one({"email": str(credentials.email).lower()})
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
