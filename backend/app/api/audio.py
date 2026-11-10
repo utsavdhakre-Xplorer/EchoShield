@@ -37,8 +37,8 @@ router = APIRouter()
 async def stream_audio_chunk(
     audio: UploadFile = File(...),
     call_id: Optional[str] = Form(None),
-    chunk_index: int = Form(0),
-    caller_number: Optional[str] = Form(None),
+    chunk_index: int = Form(0, ge=0),
+    caller_number: Optional[str] = Form(None, max_length=32),
     current_user = Depends(get_current_user),
 ):
     """Receive audio chunk, transcribe, analyze, and return threat result."""
