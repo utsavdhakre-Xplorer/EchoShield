@@ -2,11 +2,12 @@ name: EchoShield Backend Tests
 
 on:
   push:
-    branches: [utsav]
+    branches: [main, utsav]
     paths:
       - "backend/**"
       - ".github/workflows/backend-tests.yml"
   pull_request:
+    branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-tests.yml"
