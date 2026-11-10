@@ -65,8 +65,12 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=503, detail="Database not initialized")
     try:
         user = await User.get(user_id)
-    except Exception:
-        user = None
+    except Exception as exc:
+        # A database query failure is not the same as a missing account.
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to verify user account; database is temporarily unavailable",
+        ) from exc
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not getattr(user, "is_active", True):
