@@ -42,7 +42,11 @@ async def analyze_transcript(
     scam_task = detect_scam_tactics(transcript)
     strategy_task = None  # Will create after threat classification
     
-    scam_result = await asyncio.wait_for(scam_task, timeout=65.0)
+    try:
+        scam_result = await asyncio.wait_for(scam_task, timeout=65.0)
+    except asyncio.TimeoutError:
+        logger.error("Transcript scam detection timed out")
+        raise HTTPException(status_code=504, detail="Scam detection timed out; please retry")
     logger.info(f"Scam detection complete: {scam_result['urgency_score']}")
     
     threat = classify_threat(
@@ -55,11 +59,15 @@ async def analyze_transcript(
     )
     logger.info(f"Threat classification: {threat['threat_level']}")
     
-    strategy = await asyncio.wait_for(
-        generate_negotiator_strategy(transcript, threat["threat_level"]),
-        timeout=15.0
-    )
-    logger.info(f"Negotiator strategy generated")
+    try:
+        strategy = await asyncio.wait_for(
+            generate_negotiator_strategy(transcript, threat["threat_level"]),
+            timeout=15.0
+        )
+    except asyncio.TimeoutError:
+        logger.error("Negotiator strategy generation timed out")
+        raise HTTPException(status_code=504, detail="Strategy generation timed out; please retry")
+    logger.info("Negotiator strategy generated")
 
     # Serialize threat_level enum to string
     threat_level_str = threat["threat_level"].value if hasattr(threat["threat_level"], 'value') else str(threat["threat_level"])
