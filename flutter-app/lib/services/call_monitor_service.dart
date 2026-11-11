@@ -88,6 +88,7 @@ class CallMonitorService extends ChangeNotifier {
   ThreatResult? _latestThreat;
   String? _currentCallId;
   String? _token;
+  bool _chunkInProgress = false;
   final List<ThreatResult> _threatHistory = [];
   Timer? _chunkTimer;
   StreamSubscription<Map<String, dynamic>>? _wsSubscription;
@@ -103,6 +104,7 @@ class CallMonitorService extends ChangeNotifier {
 
   void setToken(String? token) {
     _token = token;
+    debugPrint('[AUTH] Call monitor token ${token == null || token.isEmpty ? 'missing' : 'loaded'}');
   }
 
   Future<bool> requestPermissions() async {
@@ -117,6 +119,11 @@ class CallMonitorService extends ChangeNotifier {
     final hasPermissions = await requestPermissions();
     if (!hasPermissions) {
       _error = 'Microphone and phone permissions required';
+      notifyListeners();
+      return;
+    }
+    if (_token == null || _token!.isEmpty) {
+      _error = 'Session expired. Please log out and log in again.';
       notifyListeners();
       return;
     }
@@ -197,6 +204,8 @@ class CallMonitorService extends ChangeNotifier {
   }
 
   Future<void> _recordAndSendChunk({String? callerNumber}) async {
+    if (_chunkInProgress || !_isMonitoring || !_isCallActive) return;
+    _chunkInProgress = true;
     // Use the app's proper temp directory — /tmp/ does not exist on real Android devices
     final tmpDir = await getTemporaryDirectory();
     final tmpPath = '${tmpDir.path}/echoshield_chunk_$_chunkIndex.wav';
@@ -225,6 +234,11 @@ class CallMonitorService extends ChangeNotifier {
       if (!file.existsSync()) return;
 
       debugPrint('[CALL] Captured audio chunk $_chunkIndex (${file.lengthSync()} bytes); sending to API');
+      if (_token == null || _token!.isEmpty) {
+        debugPrint('[AUTH] No access token; stopping audio upload.');
+        _error = 'Session expired. Please log out and log in again.';
+        return;
+      }
       final result = await _sendAudioChunk(
         file,
         callId: _currentCallId,
@@ -252,6 +266,8 @@ class CallMonitorService extends ChangeNotifier {
       file.deleteSync();
     } catch (e) {
       debugPrint('Recording chunk error: $e');
+    } finally {
+      _chunkInProgress = false;
     }
   }
 
@@ -281,7 +297,12 @@ class CallMonitorService extends ChangeNotifier {
         debugPrint('[CALL] API analysis succeeded for chunk $chunkIndex');
         return ThreatResult.fromJson(jsonDecode(response.body));
       }
-      debugPrint('[CALL] Audio API failed: HTTP ${response.statusCode}');
+      debugPrint('[CALL] Audio API failed: HTTP ${response.statusCode}; responseBytes=${response.body.length}');
+      if (response.statusCode == 401) {
+        _error = 'Login session expired. Please log out and log in again.';
+        _token = null;
+        notifyListeners();
+      }
     } catch (e) {
       debugPrint('API send error: $e');
     }
@@ -350,7 +371,10 @@ class CallMonitorService extends ChangeNotifier {
         }
         notifyListeners();
       } else {
-        _error = 'Simulation failed (HTTP ${response.statusCode}). Please refresh or log in again.';
+        _error = response.statusCode == 401
+          ? 'Login session expired. Please log out and log in again.'
+          : 'Simulation failed (HTTP ${response.statusCode}). Please try again.';
+      if (response.statusCode == 401) _token = null;
         debugPrint('Simulate call failed with status ${response.statusCode}');
         notifyListeners();
       }
