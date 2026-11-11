@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/call_monitor_service.dart';
 import '../services/api_service.dart';
@@ -33,6 +34,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final monitor = context.read<CallMonitorService>();
     monitor.setToken(auth.token);
     await _loadData();
+    if (!mounted || auth.token == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final consentSaved = prefs.getBool('echoshield_audio_monitor_consent') ?? false;
+    if (consentSaved) {
+      await monitor.startMonitoring();
+    } else {
+      await _enableMonitoringWithDisclosure(monitor);
+    }
   }
 
   Future<void> _enableMonitoringWithDisclosure(CallMonitorService monitor) async {
@@ -67,6 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (accepted == true && mounted) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('echoshield_audio_monitor_consent', true);
       await monitor.startMonitoring();
     }
   }
@@ -393,20 +404,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 20),
         ],
 
-        // Simulate button
-        SizedBox(
+        // Real call events are handled automatically while app monitoring is enabled.
+        Container(
           width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: monitor.isMonitoring
-                ? () => monitor.simulateScamCall()
-                : null,
-            icon: const Icon(Icons.play_arrow_outlined),
-            label: const Text('SIMULATE SCAM CALL'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: cyan,
-              side: BorderSide(color: cyan.withValues(alpha: 0.4)),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00F5FF).withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF00F5FF).withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              Icon(monitor.isMonitoring ? Icons.shield_outlined : Icons.shield_moon_outlined,
+                  color: monitor.isMonitoring ? cyan : Colors.white38),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  monitor.isMonitoring
+                      ? 'AUTOMATIC CALL EVENT MONITORING ENABLED — incoming/active call events are detected by the app. Audio-based scam analysis depends on audio access available to Android.'
+                      : 'Call event monitoring is OFF. Enable app monitoring above to activate automatic call-event detection.',
+                  style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.45),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 20),
